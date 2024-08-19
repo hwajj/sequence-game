@@ -1,9 +1,14 @@
-import admin from 'firebase-admin';
+import admin from "firebase-admin";
+import dotenv from "dotenv";
 
+// .env 파일에서 환경 변수를 로드
+dotenv.config();
+
+// Firebase Admin SDK 초기화
 admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-  projectId: process.env.GOOGLE_PROJECT_ID,
-  databaseURL: 'https://sequence-game-ad037.firebaseio.com',
+  credential: admin.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS),
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
 
 export default admin;
+export const db = admin.database();

@@ -1,0 +1,218 @@
+import { db } from "./firebaseAdmin.js";
+import { v4 as uuidv4 } from "uuid";
+import shortid from "shortid";
+import admin from "firebase-admin";
+
+export const createRoom = async (req, res) => {
+  try {
+    const roomId = shortid.generate(); // 짧은 방 ID 생성
+    const { userId, userName, totalPlayers, roomName } = req.body;
+
+    const newRoom = {
+      roomName,
+      roomId,
+      players: {
+        [userId]: {
+          userId,
+          userName,
+          isHost: true,
+        },
+      },
+      totalPlayers, // 방에서 설정한 최대 플레이어 수
+      createdAt: new Date().toISOString(),
+      gameStarted: false,
+    };
+
+    await admin.database().ref(`rooms/${roomId}`).set(newRoom);
+    // 사용자의 현재 방 정보를 별도로 저장
+    const userRoomRef = admin.database().ref(`userRooms/${userId}`);
+    await userRoomRef.set({ roomId });
+
+    res.status(200).send({ roomId });
+  } catch (error) {
+    console.error("Error creating room:", error);
+    res.status(500).send({ error: "Failed to create room" });
+  }
+};
+
+// 방 인원 설정 (짝수만 가능)
+export const setTotalPlayers = async (req, res) => {
+  try {
+    const { roomId, totalPlayers } = req.body;
+    const roomRef = db.ref(`rooms/${roomId}`);
+    const roomSnapshot = await roomRef.once("value");
+    const roomData = roomSnapshot.val();
+
+    if (!roomData) {
+      return res.status(404).send({ error: "Room not found" });
+    }
+
+    // 방장만 설정 가능
+    if (roomData.players[0].userId !== req.body.userId) {
+      return res
+        .status(403)
+        .send({ error: "Only the host can set the total player count." });
+    }
+
+    if (totalPlayers % 2 !== 0) {
+      return res
+        .status(400)
+        .send({ error: "Total player count must be an even number." });
+    }
+
+    await roomRef.update({ totalPlayers });
+    res.status(200).send({ message: "Total player count updated" });
+  } catch (error) {
+    console.error("Error setting total players:", error);
+    res.status(500).send({ error: "Failed to set total player count" });
+  }
+};
+
+// 게임 시작
+export const startGame = async (req, res) => {
+  try {
+    const { roomId, userId } = req.body;
+    const roomRef = db.ref(`rooms/${roomId}`);
+    const roomSnapshot = await roomRef.once("value");
+    const roomData = roomSnapshot.val();
+
+    if (!roomData) {
+      return res.status(404).send({ error: "Room not found" });
+    }
+
+    // 방장만 게임 시작 가능
+    if (roomData.players[0].userId !== userId) {
+      return res
+        .status(403)
+        .send({ error: "Only the host can start the game." });
+    }
+
+    await roomRef.update({ gameStarted: true });
+    res.status(200).send({ message: "Game started" });
+  } catch (error) {
+    console.error("Error starting game:", error);
+    res.status(500).send({ error: "Failed to start game" });
+  }
+};
+
+export const getRooms = async (req, res) => {
+  try {
+    const roomsSnapshot = await db.ref("rooms").once("value");
+    const roomsData = roomsSnapshot.val();
+
+    // 방 목록이 없을 경우 빈 배열 반환
+    if (!roomsData) {
+      return res.status(200).send([]);
+    }
+
+    // 방 정보를 배열로 변환
+    const roomsList = Object.keys(roomsData).map((roomId) => ({
+      roomId,
+      ...roomsData[roomId],
+    }));
+
+    res.status(200).send(roomsList);
+  } catch (error) {
+    console.error("Error fetching rooms:", error);
+    res.status(500).send({ error: "Failed to fetch rooms" });
+  }
+};
+
+export const joinRoom = async (req, res) => {
+  try {
+    const { roomId, userId, userName } = req.body;
+
+    const roomRef = db.ref(`rooms/${roomId}`);
+    const roomSnapshot = await roomRef.once("value");
+
+    if (!roomSnapshot.exists()) {
+      return res.status(404).send({ error: "Room not found" });
+    }
+
+    const roomData = roomSnapshot.val();
+    console.log(roomData);
+    // 방의 조건 확인: 게임이 이미 시작되었거나, 플레이어가 8명을 초과한 경우
+    if (roomData.gameStarted) {
+      return res.status(400).send({ error: "Game already started" });
+    }
+
+    if (Object.keys(roomData.players || {}).length >= roomData.totalPlayers) {
+      return res.status(403).send({ error: "Room is full" });
+    }
+
+    const playerRef = roomRef.child(`players/${userId}`);
+    await playerRef.set({ userId, userName });
+
+    await db.ref(`userRooms/${userId}`).set({ roomId });
+
+    // await roomRef.update(roomData);
+    // // 방 인원이 다 찼다면 게임 시작
+    // if (roomData.players.length === roomData.totalPlayers) {
+    //   await roomRef.update({ gameStarted: true });
+    // }
+
+    res.status(200).send({ roomId });
+  } catch (error) {
+    console.error("Error joining room:", error);
+    res.status(500).send({ error: "Failed to join room" });
+  }
+};
+
+export const leaveRoom = async (req, res) => {
+  try {
+    const { roomId, userId } = req.body;
+
+    const roomRef = admin.database().ref(`rooms/${roomId}`);
+    const roomSnapshot = await roomRef.once("value");
+    const roomData = roomSnapshot.val();
+
+    if (!roomData) {
+      return res.status(404).send({ error: "Room not found" });
+    }
+
+    // 플레이어 목록에서 해당 플레이어를 제거
+    const updatedPlayers = { ...roomData.players };
+    delete updatedPlayers[userId];
+
+    await roomRef.update({ players: updatedPlayers });
+
+    // 게임이 시작되었고 플레이어가 나간 경우 게임을 중단하고 승자를 결정
+    if (roomData.gameStarted) {
+      const leavingPlayer = roomData.players[userId];
+
+      if (leavingPlayer) {
+        const loserTeam = leavingPlayer.team;
+        const remainingPlayers = Object.values(updatedPlayers);
+        const winnerTeam =
+          remainingPlayers.find((player) => player.team !== loserTeam)?.team ||
+          null;
+
+        await roomRef.update({
+          gameStarted: false,
+          winner: winnerTeam,
+        });
+
+        return res.status(200).send({
+          message: `Player left, game stopped. Team ${winnerTeam} wins.`,
+        });
+      }
+    }
+
+    // userRooms에서 사용자 정보 삭제
+    const userRoomRef = admin.database().ref(`userRooms/${userId}`);
+    await userRoomRef.remove();
+
+    // 방에 남아있는 플레이어가 없으면 방 삭제
+    if (Object.keys(updatedPlayers).length === 0) {
+      await roomRef.remove();
+      return res
+        .status(200)
+        .send({ message: "Room removed, no players left." });
+    }
+
+    res.status(200).send({ message: "Player left the room." });
+  } catch (error) {
+    console.error("Error leaving room:", error);
+    res.status(500).send({ error: "Failed to leave room" });
+  }
+};

@@ -15,3 +15,5 @@
 
 # 환경변수
 .env
+
+/serviceAccountKey.json

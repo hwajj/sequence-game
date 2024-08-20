@@ -2,6 +2,7 @@ import { db } from "./firebaseAdmin.js";
 import { v4 as uuidv4 } from "uuid";
 import shortid from "shortid";
 import admin from "firebase-admin";
+import { BOARD } from "./data.js";
 
 export const createRoom = async (req, res) => {
   try {
@@ -11,11 +12,13 @@ export const createRoom = async (req, res) => {
     const newRoom = {
       roomName,
       roomId,
+      indexNumber: 1,
       players: {
         [userId]: {
           userId,
           userName,
           isHost: true,
+          indexNumber: 1,
         },
       },
       totalPlayers, // 방에서 설정한 최대 플레이어 수
@@ -47,13 +50,6 @@ export const setTotalPlayers = async (req, res) => {
       return res.status(404).send({ error: "Room not found" });
     }
 
-    // 방장만 설정 가능
-    if (roomData.players[0].userId !== req.body.userId) {
-      return res
-        .status(403)
-        .send({ error: "Only the host can set the total player count." });
-    }
-
     if (totalPlayers % 2 !== 0) {
       return res
         .status(400)
@@ -65,33 +61,6 @@ export const setTotalPlayers = async (req, res) => {
   } catch (error) {
     console.error("Error setting total players:", error);
     res.status(500).send({ error: "Failed to set total player count" });
-  }
-};
-
-// 게임 시작
-export const startGame = async (req, res) => {
-  try {
-    const { roomId, userId } = req.body;
-    const roomRef = db.ref(`rooms/${roomId}`);
-    const roomSnapshot = await roomRef.once("value");
-    const roomData = roomSnapshot.val();
-
-    if (!roomData) {
-      return res.status(404).send({ error: "Room not found" });
-    }
-
-    // 방장만 게임 시작 가능
-    if (roomData.players[0].userId !== userId) {
-      return res
-        .status(403)
-        .send({ error: "Only the host can start the game." });
-    }
-
-    await roomRef.update({ gameStarted: true });
-    res.status(200).send({ message: "Game started" });
-  } catch (error) {
-    console.error("Error starting game:", error);
-    res.status(500).send({ error: "Failed to start game" });
   }
 };
 
@@ -130,7 +99,7 @@ export const joinRoom = async (req, res) => {
     }
 
     const roomData = roomSnapshot.val();
-    console.log(roomData);
+    // console.log(roomData);
     // 방의 조건 확인: 게임이 이미 시작되었거나, 플레이어가 8명을 초과한 경우
     if (roomData.gameStarted) {
       return res.status(400).send({ error: "Game already started" });
@@ -139,10 +108,21 @@ export const joinRoom = async (req, res) => {
     if (Object.keys(roomData.players || {}).length >= roomData.totalPlayers) {
       return res.status(403).send({ error: "Room is full" });
     }
+    // 새로운 플레이어에게 부여할 indexNumber 결정
+    const newIndexNumber = ++roomData.indexNumber;
 
     const playerRef = roomRef.child(`players/${userId}`);
-    await playerRef.set({ userId, userName });
+    await playerRef.set({
+      userId,
+      userName,
+      isHost: false,
+      indexNumber: newIndexNumber,
+    });
 
+    // roomData의 indexNumber를 증가
+    await roomRef.update({ indexNumber: newIndexNumber });
+
+    // user가 속한 방 번호
     await db.ref(`userRooms/${userId}`).set({ roomId });
 
     // await roomRef.update(roomData);
@@ -170,11 +150,41 @@ export const leaveRoom = async (req, res) => {
       return res.status(404).send({ error: "Room not found" });
     }
 
+    const isHost = roomData.players[userId].isHost;
+
+    // userRooms에서 사용자 정보 삭제 (앞으로 이동)
+    const userRoomRef = admin.database().ref(`userRooms/${userId}`);
+    await userRoomRef.remove();
+
     // 플레이어 목록에서 해당 플레이어를 제거
     const updatedPlayers = { ...roomData.players };
     delete updatedPlayers[userId];
 
-    await roomRef.update({ players: updatedPlayers });
+    // 호스트가 나갔다면 가장 작은 indexNumber를 가진 플레이어에게 호스트 권한을 부여
+    if (isHost && Object.keys(updatedPlayers).length > 0) {
+      const newHostUserId = Object.keys(updatedPlayers).reduce(
+        (prevId, currId) => {
+          return updatedPlayers[prevId].indexNumber <
+            updatedPlayers[currId].indexNumber
+            ? prevId
+            : currId;
+        },
+      );
+      updatedPlayers[newHostUserId].isHost = true;
+      // console.log(updatedPlayers);
+      await roomRef.update({ players: updatedPlayers });
+    } else {
+      // 호스트가 아닌 경우에도 업데이트 적용
+      await roomRef.update({ players: updatedPlayers });
+    }
+
+    // 방에 남아있는 플레이어가 없으면 방 삭제
+    if (Object.keys(updatedPlayers).length === 0) {
+      await roomRef.remove();
+      return res
+        .status(200)
+        .send({ message: "Room removed, no players left." });
+    }
 
     // 게임이 시작되었고 플레이어가 나간 경우 게임을 중단하고 승자를 결정
     if (roomData.gameStarted) {
@@ -196,18 +206,6 @@ export const leaveRoom = async (req, res) => {
           message: `Player left, game stopped. Team ${winnerTeam} wins.`,
         });
       }
-    }
-
-    // userRooms에서 사용자 정보 삭제
-    const userRoomRef = admin.database().ref(`userRooms/${userId}`);
-    await userRoomRef.remove();
-
-    // 방에 남아있는 플레이어가 없으면 방 삭제
-    if (Object.keys(updatedPlayers).length === 0) {
-      await roomRef.remove();
-      return res
-        .status(200)
-        .send({ message: "Room removed, no players left." });
     }
 
     res.status(200).send({ message: "Player left the room." });

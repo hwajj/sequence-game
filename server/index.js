@@ -8,8 +8,10 @@ import {
   getRooms,
   leaveRoom,
   setTotalPlayers,
-  startGame,
 } from "./rooms.js";
+
+import { startGame, quitGame, placeCard } from "./game.js";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -41,8 +43,6 @@ app.post("/create-room", createRoom);
 
 app.post("/set-total-players", setTotalPlayers);
 
-app.post("/start-game", startGame);
-
 // 방 참여
 app.post("/join-room", joinRoom);
 
@@ -67,6 +67,15 @@ app.post("/api/login", async (req, res) => {
     res.status(401).send({ message: "Unauthorized" });
   }
 });
+
+//게임 시작
+app.post("/start-game", startGame);
+
+//게임중단
+app.post("/quit-game", quitGame);
+
+//place Card
+app.post("/place-card", placeCard);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

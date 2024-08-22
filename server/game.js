@@ -70,7 +70,7 @@ export const startGame = async (req, res) => {
     // 클라이언트에 게임 시작 알림과 함께 업데이트된 데이터를 전송
     res.status(200).send({
       message: "Game started",
-      players: updatedPlayers,
+      // players: updatedPlayers,
       currentTurn,
     });
   } catch (error) {
@@ -183,9 +183,12 @@ export const placeCard = async (req, res) => {
     const [row, col] = position;
     // J 카드에 대한 규칙 적용
     if (card.includes("J")) {
+      console.log(card + " in player's hand J'");
       if (card.includes("♠") || card.includes("♥")) {
         // 상대방의 칩을 제거하는 J 카드 (♠,♥)
+        console.log(card + 'card.includes("♠") || card.includes("♥")');
         const targetPosition = roomData.board[row][col];
+        console.log(targetPosition);
         if (
           targetPosition &&
           targetPosition.occupiedColor &&
@@ -195,8 +198,10 @@ export const placeCard = async (req, res) => {
           targetPosition.occupiedColor = ""; // 상대방의 칩 제거
         }
       } else if (card.includes("♦") || card.includes("♣")) {
+        console.log(card + 'card.include"♦") || card.includes("♣"');
         // 자신의 칩을 원하는 위치에 놓는 J 카드 (♦,♣)
         const targetPosition = roomData.board[row][col];
+        console.log(targetPosition);
         if (targetPosition && !targetPosition.occupiedColor) {
           targetPosition.occupiedColor = player.team;
         }
@@ -229,19 +234,26 @@ export const placeCard = async (req, res) => {
     }
 
     // 다음 턴 설정 (순환)
-    const players = Object.values(roomData.players);
+    let players = Object.values(roomData.players).sort(
+      (a, b) => a.indexNumber - b.indexNumber,
+    );
     // 다음 턴 설정 (순환)
     if (players.length === 0) {
       return res.status(400).send({ error: "No players in room" });
     }
+    // console.log(currentIndex);
 
-    const currentIndex = players.findIndex((p) => p.userId === userId);
+    const currentIndex = players.findIndex((p) => {
+      // console.log("current index " + p.userName + "");
+      return p.userId === userId;
+    });
     if (currentIndex === -1) {
       return res.status(400).send({ error: "Current player not found" });
     }
 
     const nextIndex = (currentIndex + 1) % players.length;
     const nextTurn = players[nextIndex].userId;
+    console.log(nextTurn);
 
     // 덱에서 새 카드 나누기
     if (roomData.deck.length > 0) {
@@ -264,7 +276,7 @@ export const placeCard = async (req, res) => {
     res.status(200).send({
       message: "Card placed successfully",
       board: roomData.board,
-      players: roomData.players,
+      // players: roomData.players,
       currentTurn: nextTurn,
       winner: roomData.winner || null,
       gameFinished: roomData.gameFinished || false,
@@ -302,6 +314,23 @@ export const checkWin = (board, playerTeam) => {
       endRow >= 0 && endRow < boardSize && endCol >= 0 && endCol < boardSize
     );
   };
+  const isDuplicateSequence = (newSequence) => {
+    for (let existingSequence of sequenceIndices) {
+      console.log(existingSequence); // [5,0]
+      if (!Array.isArray(existingSequence)) continue; // 기존 시퀀스가 배열인지 확인
+      let commonCount = 0;
+      for (let [newR, newC] of newSequence) {
+        console.log(newSequence); //[ [ 9, 1 ], [ 9, 2 ], [ 9, 3 ], [ 9, 4 ], [ 9, 5 ] ]
+        if ([existingSequence].some(([r, c]) => r === newR && c === newC)) {
+          commonCount++;
+        }
+        if (commonCount >= 2) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
 
   for (let row = 0; row < boardSize; row++) {
     for (let col = 0; col < boardSize; col++) {
@@ -334,9 +363,13 @@ export const checkWin = (board, playerTeam) => {
         }
 
         // 시퀀스가 완성되면 해당 시퀀스를 처리
-        if (count === sequenceLength) {
+        if (
+          count === sequenceLength &&
+          !isDuplicateSequence(potentialSequence)
+        ) {
           ++sequenceCount;
           sequenceIndices.push(...potentialSequence);
+          console.log(sequenceIndices); //[ [ 5, 0 ], [ 6, 1 ], [ 7, 2 ], [ 8, 3 ], [ 9, 4 ] ]
         }
       }
     }

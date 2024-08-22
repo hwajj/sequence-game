@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { useAtom } from "jotai";
+import { alertMessageAtom, alertVisibleAtom } from "@/atoms/alertAtoms.js";
 
-function AlertMessage({ message, duration = 3000, onClose }) {
-  const [visible, setVisible] = useState(false);
+function AlertMessage({ duration = 3000 }) {
+  const [message, setMessage] = useAtom(alertMessageAtom);
+  const [visible, setVisible] = useAtom(alertVisibleAtom);
+
   useEffect(() => {
     if (message) {
       setVisible(true);
     }
-    // 설정된 시간이 지나면 트랜지션을 위해 visible을 false로 설정
     const timer = setTimeout(() => {
       setVisible(false);
-
-      // 트랜지션 시간 후에 onClose 호출
-      setTimeout(onClose, 300); // 트랜지션 시간이 300ms로 설정됨
+      setTimeout(() => setMessage(""), 300); // 트랜지션 시간 후에 메시지 초기화
     }, duration);
 
-    // 컴포넌트가 언마운트될 때 타이머를 정리합니다.
     return () => clearTimeout(timer);
-  }, [message, duration, onClose]);
+  }, [message, duration, setMessage, setVisible]);
 
   if (!message) return null;
 

@@ -8,6 +8,7 @@ import {
   getRooms,
   leaveRoom,
   setTotalPlayers,
+  userRoom,
 } from "./rooms.js";
 
 import { startGame, quitGame, placeCard } from "./game.js";
@@ -19,24 +20,7 @@ app.use(express.json());
 // 방 목록 가져오기
 app.get("/rooms", getRooms);
 
-app.get("/userRoom", async (req, res) => {
-  try {
-    const { userId } = req.query;
-
-    const userRoomRef = admin.database().ref(`userRooms/${userId}`);
-    const userRoomSnapshot = await userRoomRef.once("value");
-    const userRoomData = userRoomSnapshot.val();
-
-    if (!userRoomData) {
-      return res.status(404).send({ error: "No room found for this user" });
-    }
-
-    res.status(200).send(userRoomData);
-  } catch (error) {
-    console.error("Error fetching user room:", error);
-    res.status(500).send({ error: "Failed to fetch user room" });
-  }
-});
+app.get("/userRoom", userRoom);
 
 // 방 생성
 app.post("/create-room", createRoom);

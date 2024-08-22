@@ -20,8 +20,6 @@ const Board = ({
   sequenceIndices,
   gameFinished,
 }) => {
-  console.log(gameFinished);
-  console.log(sequenceIndices);
   const isSequence = (row, col) => {
     if (!sequenceIndices || !gameFinished) return;
     return sequenceIndices.some(
@@ -40,9 +38,12 @@ const Board = ({
     }
   };
   return (
-    <div className="grid grid-rows-10 gap-0 text-sm mx-auto ">
+    <div className="grid items-center justify-center rounded-sm mx-4 grid-rows-10 gap-0 text-[.7rem] xs:text-[.9rem] sm:text-lg  lg:text-xl">
       {board?.map((row, rowIndex) => (
-        <div key={rowIndex} className="grid grid-cols-10 gap-0">
+        <div
+          key={rowIndex}
+          className="grid items-center bg-gray-50 justify-center grid-cols-10 gap-0 rounded-sm"
+        >
           {row.map((card, colIndex) => {
             // 카드의 무늬에 따라 글씨 색상 적용
             const isRedSuit =
@@ -52,7 +53,8 @@ const Board = ({
             return (
               <div
                 key={colIndex}
-                className={`relative border-2 border-gray-400 h-[2.5rem] w-[2.9rem] 
+                className={`no-select relative border-[.09rem] overflow-hidden border-gray-300
+                 w-[1.7rem] h-[1.7rem]  xs:w-[2rem] xs:h-[2rem] sm:w-[2.5rem] sm:h-[2.5rem] lg:h-[3rem] rounded-sm
                 ${clickedCard === card.value ? "bg-yellow-100 transition-colors duration-75" : "bg-gray"}
                   ${isSequence(rowIndex, colIndex) ? "bg-yellow-300" : ""}   
                 cursor-pointer flex items-center justify-center`}
@@ -60,10 +62,14 @@ const Board = ({
                   handleCardClick(card.value, [rowIndex, colIndex])
                 }
               >
-                <span className={textColor}>{card.value}</span>
+                <span
+                  className={`${textColor}  ${card.value === "Joker" && "bg-gray-400 w-full h-full"} `}
+                >
+                  {card.value !== "Joker" ? card.value : ""}
+                </span>
                 {/* 칩을 표현하는 원(circle) */}
                 <div
-                  className={`absolute w-4 h-4 rounded-full ${getChipStyle(card.occupiedColor)}`}
+                  className={`absolute w-4 h-4 lg:w-5 lg:h-5 rounded-full ${getChipStyle(card.occupiedColor)}`}
                   style={{
                     top: "50%",
                     left: "50%",

@@ -20,7 +20,7 @@ import "slick-carousel/slick/slick-theme.css";
 
 export default function GameTutorialModal() {
   const [isOpen, setIsOpen] = useAtom(isGameTutorialModalOpenAtom);
-
+  const [isSliding, setIsSliding] = useState(false);
   const settings = {
     dots: true,
     infinite: false,
@@ -31,25 +31,47 @@ export default function GameTutorialModal() {
 
   if (!isOpen) return null;
 
+  const handleBeforeChange = () => {
+    setIsSliding(true);
+  };
+
+  const handleAfterChange = () => {
+    setIsSliding(false);
+  };
+
+  const handleOutsideClick = () => {
+    if (!isSliding) {
+      setIsOpen(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={() => setIsOpen(false)}
+      onClick={handleOutsideClick}
     >
       <div
-        className="logo-font xs:relative bg-white flex flex-col  p-6 rounded shadow-lg max-w-md w-full"
+        style={{
+          width: "calc(100% - 2rem)",
+        }}
+        className="main-font relative bg-white flex flex-col p-6 rounded shadow-lg max-w-md "
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={() => setIsOpen(false)}
-          className="ml-auto xs:absolute xs:right-4 xs:top-2"
+          className="ml-auto cursor-pointer pointer-events-auto absolute
+          flex justify-center items-center right-4 px-4 py-3 top-2 w-4 z-10"
         >
           <FontAwesomeIcon icon={faXmark} />
         </button>
-        <Slider {...settings}>
+        <Slider
+          {...settings}
+          beforeChange={handleBeforeChange}
+          afterChange={handleAfterChange}
+        >
           <div className="flex items-center gap-2 justify-center flex-col">
-            <h2 className="text-xl font-bold ">카드로 하는 팀 오목</h2>
-            <ul className="text-[.75rem] h-14">
+            <h2 className="text-xl font-bold mb-2">카드로 하는 팀 오목</h2>
+            <ul className="text-[.75rem] h-14 mb-2">
               <li>
                 &bull; 짝수의 플레이어는 팀을 나눠 순서대로 번갈아가며
                 플레이한다.
@@ -61,8 +83,8 @@ export default function GameTutorialModal() {
           </div>
 
           <div className="flex items-center gap-2 justify-center flex-col">
-            <h2 className="text-xl font-bold ">시퀀스 룰</h2>
-            <ul className="text-[.75rem] h-14">
+            <h2 className="text-xl font-bold mb-2">시퀀스 룰</h2>
+            <ul className="text-[.75rem] h-14 mb-2">
               <li>&bull; 5개를 놓으면 시퀀스 1개가 완성된다.</li>
               <li>&bull; 2개의 시퀀스를 먼저 완성하면 이긴다.</li>
               <li>
@@ -73,8 +95,8 @@ export default function GameTutorialModal() {
           </div>
 
           <div className="flex items-center gap-2 justify-center flex-col">
-            <h2 className="text-xl font-bold ">Jack 카드의 규칙</h2>
-            <ul className="text-[.75rem] h-14">
+            <h2 className="text-xl font-bold mb-2">Jack 카드의 규칙</h2>
+            <ul className="text-[.75rem] h-14 mb-2">
               <li>
                 &bull; 스페이드 J, 하트 J는 상대방의 칩을 한 개 없앨 수 있다.
               </li>
@@ -139,6 +161,7 @@ function SequenceSimulationOne() {
       onClick={playAnimation}
     >
       <img
+        translate="no"
         className="pointer-events-none"
         src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Sequence-board-game.jpg/732px-Sequence-board-game.jpg"
         alt="Sequence Board Game"
@@ -194,6 +217,7 @@ function SequenceSimulationTwo() {
   return (
     <div className="image-container xs:hidden w-[391px] relative h-80">
       <img
+        translate="no"
         className="pointer-events-none"
         src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Sequence-board-game.jpg/732px-Sequence-board-game.jpg"
         alt="Sequence Board Game"

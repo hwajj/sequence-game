@@ -20,7 +20,7 @@ export const BOARD = [
     { value: "4♦", occupiedColor: "" },
     { value: "5♦", occupiedColor: "" },
     { value: "6♦", occupiedColor: "" },
-    { value: "K♥", occupiedColor: "" },
+    { value: "K♦", occupiedColor: "" },
     { value: "10♥", occupiedColor: "" },
   ],
   [
@@ -53,7 +53,7 @@ export const BOARD = [
     { value: "2♣", occupiedColor: "" },
     { value: "A♣", occupiedColor: "" },
     { value: "K♣", occupiedColor: "" },
-    { value: "K♦", occupiedColor: "" },
+    { value: "K♥", occupiedColor: "" },
     { value: "A♥", occupiedColor: "" },
     { value: "2♥", occupiedColor: "" },
     { value: "4♥", occupiedColor: "" },

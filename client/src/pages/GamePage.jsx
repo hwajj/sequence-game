@@ -1,16 +1,18 @@
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { userAtom } from "@/atoms/userAtom.js";
 import React, { useEffect, useState } from "react";
 import { getDatabase, ref, onValue } from "firebase/database";
 import Board from "@/components/Board.jsx";
 import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import AlertMessage from "@/components/AlertMessage.jsx";
-import { cardMap } from "@/util/constants.js";
+import { BOARD } from "@/util/constants.js";
 import GameFinishedModal from "@/components/GameFinishedModal.jsx";
 import QuitGameModal from "@/components/QuitGameModal.jsx";
+import useJoinRoomOnUrlAccess from "@/hook/useJoinRoomOnUrlAccess.js";
+import { alertMessageAtom } from "@/atoms/alertAtoms.js";
+import { truncateName } from "@/util/util.js";
 function GamePage() {
   const { roomId } = useParams();
   const [user] = useAtom(userAtom);
@@ -20,8 +22,7 @@ function GamePage() {
   const dbInstance = getDatabase();
   const [players, setPlayers] = useState([]);
   const [host, setHost] = useState(null);
-  const [board, setBoard] = useState([]);
-  const [alertMessage, setAlertMessage] = useState("");
+  const [board, setBoard] = useState(BOARD);
   const [userCards, setUserCards] = useState(null);
   const [currentTurn, setCurrentTurn] = useState(0);
   const [clickedCard, setClickedCard] = useState(null);
@@ -30,7 +31,9 @@ function GamePage() {
   const [gameFinished, setGameFinished] = useState(false);
   const [isGameFinishedOpen, setGameFinishedOpen] = useState(false);
   const [isQuitGameOpen, setQuitGameOpen] = useState(false);
-
+  const setAlertMessage = useSetAtom(alertMessageAtom);
+  // GamePage 컴포넌트 내에서 사용
+  useJoinRoomOnUrlAccess(user, setAlertMessage);
   useEffect(() => {
     if (!user) {
       return;
@@ -62,8 +65,15 @@ function GamePage() {
             setHost(hostPlayer.userId);
           }
           const currentPlayer = roomData.players[user.uid];
+
           if (currentPlayer && currentPlayer.cards) {
-            setUserCards(currentPlayer.cards); // 서버에서 업데이트된 카드 상태 반영
+            if (room?.gameStarted) {
+              setUserCards(currentPlayer.cards); // 서버에서 업데이트된 카드 상태 반영
+            } else {
+              setTimeout(() => {
+                setUserCards(currentPlayer.cards); // 서버에서 업데이트된 카드 상태 반영
+              }, 300); // 500ms 지연
+            }
           }
 
           //방장 update
@@ -84,7 +94,8 @@ function GamePage() {
             setGameFinished(roomData.gameFinished);
             setSequenceIndices(roomData.sequenceIndices);
             setWinner(roomData.winner);
-            openModal();
+            setClickedCard(null);
+            setGameFinishedOpen(true);
           }
         } else {
           navigate("/lounge");
@@ -109,7 +120,6 @@ function GamePage() {
           userId: user.uid,
         },
       );
-      console.log(response.data.message);
       setRoom(null);
       navigate("/lounge");
     } catch (error) {
@@ -138,7 +148,6 @@ function GamePage() {
     }
   };
   const handleStartGame = async () => {
-    console.log(players);
     setGameFinished(false);
 
     setSequenceIndices([]);
@@ -163,14 +172,18 @@ function GamePage() {
   };
   // 카드 클릭 핸들러
   const handleCardClick = (card) => {
-    if (gameFinished) setAlertMessage("게임이 끝났습니다");
+    // console.log(userCards);
+    if (gameFinished) {
+      // 게임끝났습니다 메시지 다시 보여주기
+      setGameFinishedOpen(true);
+    }
     setClickedCard(card); // 클릭된 카드를 상태로 설정
   };
 
   const handlePlaceCard = async (card, position) => {
     if (gameFinished) {
-      // setAlertMessage("게임이 끝났습니다!!");
-      openModal();
+      // 게임끝났습니다 메시지 다시 보여주기
+      setGameFinishedOpen(true);
       return;
     }
     // currentTurn일 때만 카드를 놓을 수 있음
@@ -189,6 +202,7 @@ function GamePage() {
       setAlertMessage("이 위치는 시퀀스입니다");
       return;
     }
+
     // 클릭된 위치가 이미 점유된 경우 (J카드가 아닌 경우)
     if (board[position[0]][position[1]].occupiedColor && !card.includes("J")) {
       setAlertMessage("이미 채워져있습니다.");
@@ -199,6 +213,16 @@ function GamePage() {
       setAlertMessage("가지고 있는 카드가 아닙니다.");
       return;
     }
+
+    // 카드가 보드에 놓이면 위로 올리는 애니메이션 적용
+    // setPlacedCards((prevPlacedCards) => [...prevPlacedCards, card]);
+    // 카드가 놓인 후 2초 후에 뒤집기
+    // setTimeout(() => {
+    //   console.log("2초");
+    //   setFlippedCards((prevFlippedCards) => [...prevFlippedCards, card]);
+    //   console.log(card);
+    // }, 2000);
+    //    setFlippedCards((prevFlippedCards) => [...prevFlippedCards, card]);
 
     try {
       const response = await axios.post(
@@ -225,16 +249,16 @@ function GamePage() {
   }
 
   return (
-    <div className="flex flex-col flex-grow h-full gap-4 max-w-[80rem] mx-auto">
-      <div className="flex justify-between p-4 items-center">
-        <h1 className="text-center w-full text-[1.rem] main-font">
+    <div className="relative flex flex-col flex-grow h-full mx-auto max-w-[45rem] justify-around">
+      <div className="flex rounded-sm justify-between p-2 lg:p-4 items-center">
+        <h1 className="text-center xs:block hidden xs:text-[2rem] lg:text-[2.5rem] font-bold text-gray-800 main-font">
           {room && room.roomName}
         </h1>
         {user.uid === host && (
           <button
-            className={`border-blue-600 rounded-[.4rem] w-40 h-10 ml-auto ${
+            className={`absolute xs:relative bottom-0 right-0 mb-2 border-blue-600 rounded-[.25rem] w-20 h-10 lg:w-40 lg:h-10 ml-auto ${
               room?.gameStarted && !room?.gameFinished
-                ? "bg-gray-500"
+                ? "bg-gray-500 text-white"
                 : "bg-green-500"
             }`}
             onClick={
@@ -244,30 +268,54 @@ function GamePage() {
             }
           >
             {room?.gameStarted && !room?.gameFinished
-              ? "Quit Game"
-              : "Start Game"}
+              ? "게임 중단"
+              : "게임 시작"}
           </button>
         )}
       </div>
-
-      <div className="flex flex-col flex-wrap gap-4">
-        <div className="flex justify-around items-center flex-grow">
+      <div className="text-sm sm:mb-2 lg:mb-4 hidden md:block ">
+        {/*{userCards && userCards.some((item) => item.includes("J")) && (*/}
+        <ul>
+          <li>♣ &nbsp; J 카드는 J카드의 규칙이 있습니다.</li>
+          <li>
+            ♦ &nbsp; 정면을 바라보는 J 카드 (♣,♦) 인 경우 원하는 위치에 놓을
+            수 있습니다.
+          </li>
+          <li>
+            ♥ &nbsp; 옆을 바라보는 J 카드 (♥,♠) 인 경우 상대방의 칩을 제거할
+            수 있습니다.
+          </li>
+          <li>
+            ♠ &nbsp; J 카드를 사용하려면{" "}
+            <span className={"text-red-500"}>J 카드 클릭 후 </span> 보드 위에서
+            놓고싶은 위치를 선택하세요!!
+          </li>
+        </ul>
+        {/*)}*/}
+      </div>
+      <div className="flex lg:flex-row flex-col gap-2 justify-evenly">
+        {/*<div className="flex justify-around items-center flex-grow">*/}
+        <div className="flex flex-row lg:flex-col px-4 justify-evenly items-center">
           {players
-            .slice(0, Math.ceil(players.length / 2))
+            // .slice(0, Math.ceil(players.length / 2))
             .map((player, index) => (
               <div
                 key={index}
-                className={`px-4 py-2 relative border-2 text-[.7rem] main-font min-w-20 text-center rounded-[.4rem]
+                className={`relative h-full lg:h-auto
+                  text-[.7rem] p-2 mx-2 lg:text-[1rem] main-font  text-center rounded-[.25rem]
               ${
-                player.team === "orange"
-                  ? "border-orange-300"
+                currentTurn !== player.userId && player.team === "orange"
+                  ? "bg-orange-100"
                   : player.team === "blue"
-                    ? "border-blue-300"
-                    : "border-gray-200"
+                    ? "bg-blue-100"
+                    : ""
               }
-              ${currentTurn === player.userId && (player.team === "orange" ? "bg-orange-400" : "bg-blue-100")} `}
+              ${currentTurn === player.userId && (player.team === "orange" ? "shadow-neon-orange bg-orange-400" : "shadow-neon-blue bg-blue-300")} `}
               >
-                {player.userName}
+                {/*사용자 이름 */}
+                <span className={"whitespace-wrap "}>
+                  {truncateName(player.userName, 5)}
+                </span>
                 {player.userId === host && (
                   <span className="absolute text-yellow-400 top-0 right-1">
                     <FontAwesomeIcon icon={faCrown} />
@@ -283,11 +331,11 @@ function GamePage() {
           sequenceIndices={sequenceIndices}
           gameFinished={gameFinished}
         />
-        <div className="flex justify-around items-center flex-row-reverse flex-grow">
+        {/*<div className="flex justify-around items-center flex-row-reverse flex-grow">
           {players.slice(Math.ceil(players.length / 2)).map((player, index) => (
             <div
               key={index}
-              className={`px-4 py-2 relative border-2 text-[.7rem] main-font min-w-20 text-center rounded-[.4rem] 
+              className={`px-4 py-2 relative border-2 text-[.7rem] main-font min-w-20 text-center rounded-[.25rem] 
                  ${
                    player.team === "orange"
                      ? "border-orange-300"
@@ -305,56 +353,27 @@ function GamePage() {
               )}
             </div>
           ))}
-        </div>
+        </div>*/}
       </div>
-      <div
-        className={
-          "flex flex-wrap overflow-auto gap-6 py-2 justify-center items-center"
-        }
-      >
+      <div className="flex flex-wrap justify-center gap-2 items-center mt-4 xs:mt-6 lg:mt-10 h-30">
         {userCards?.map((card, index) => (
           <img
             key={index}
-            className={`no-select ${clickedCard === card && "-translate-y-[.3rem]"} transition-transform duration-150 
-             lg:w-32 lg:h-36 w-24 h-32`}
+            className={`no-select card
+             ${clickedCard === card && "shadow-right-bottom -translate-x-[.2rem] "} transition-transform duration-500
+             w-16 h-24 lg:w-24 lg:h-32`}
+            alt={`Card ${card}`}
             src={`/cards/${card}.svg`}
             onClick={() => handleCardClick(card)}
           />
         ))}
       </div>
-      <div>
-        {room?.gameStarted &&
-          players.map(
-            (player, index) =>
-              player.userId === currentTurn && (
-                <p key={index}> {player.userName}님의 차례입니다 </p>
-              ),
-          )}
-        {!room?.gameStarted && <p>게임이 끝났습니다</p>}
-        {clickedCard && clickedCard.includes("J") && (
-          <ul>
-            <li>J 카드는 J카드의 규칙이 있습니다.</li>
-            <li>
-              정면을 바라보는 J 카드 (♣,♦) 인 경우 원하는 위치에 놓을 수
-              있습니다.
-            </li>
-            <li>
-              옆을 바라보는 J 카드 (♥,♠) 인 경우 상대방의 칩을 제거할 수
-              있습니다.
-            </li>
-            <li>
-              J 카드를 사용하려면{" "}
-              <span className={"text-red-500"}>J 카드 클릭 후 </span> 놓고싶은
-              위치에 클릭하세요!!
-            </li>
-          </ul>
-        )}
-      </div>
-      <div className={"mt-auto flex justify-between items-center"}>
+
+      <div className={"mb-2 lg:mb-4 flex justify-between items-center"}>
         <button
           onClick={leaveRoom}
           className={
-            "text-white mt-auto px-2 h-10  rounded-sm main-font bg-gray-500 "
+            "text-white mt-auto p-2 text-sm md:text-xl md:h-10 rounded-sm main-font bg-gray-500 "
           }
         >
           나가기

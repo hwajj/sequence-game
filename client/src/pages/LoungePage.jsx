@@ -3,7 +3,6 @@ import { userAtom } from "@/atoms/userAtom.js";
 import { useAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { isGameTutorialModalOpenAtom } from "@/atoms/modalAtom.js";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import CreateRoomModal from "@/components/CreateRoomModal.jsx";
 import AlertMessage from "@/components/AlertMessage.jsx";
@@ -111,12 +110,11 @@ const LoungePage = () => {
       console.error("Error joining room:", error);
     }
   };
-
   return (
-    <div className="mx-auto p-5">
+    <div className="mx-auto max-w-[40rem] lg:max-w-[60rem] p-5 ">
       <button
         onClick={openModal}
-        className="mt-4 ml-auto w-full p-2 bg-green-800 text-white rounded"
+        className="ml-auto w-full p-2 bg-green-800 text-white rounded my-4"
         // onClick={() => handleJoinRoom(room.roomId)}
       >
         Create Room

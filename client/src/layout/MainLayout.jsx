@@ -4,8 +4,6 @@ import UserProfile from "@/components/UserProfile.jsx";
 import { userAtom } from "@/atoms/userAtom.js";
 import { useAtom } from "jotai";
 import { auth } from "@/firebaseConfig.js";
-import { faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { isGameTutorialModalOpenAtom } from "@/atoms/modalAtom.js";
 
 function Layout() {
@@ -26,7 +24,7 @@ function Layout() {
     return () => unsubscribe();
   }, [navigate, setUser]);
   return (
-    <div className="flex flex-col min-h-screen ">
+    <div className="flex flex-col min-h-screen main-font">
       {/* Header */}
       <header className="flex justify-between items-center p-4 bg-gray-800 text-white">
         <div className="text-sm logo-font font-bold">
@@ -38,7 +36,7 @@ function Layout() {
         <div className="flex ">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="text-white logo-font px-4  cursor-pointer text-[.6rem] my-auto"
+            className="text-white px-4  cursor-pointer text-[.6rem] my-auto"
           >
             게임방법
           </button>
@@ -48,14 +46,14 @@ function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 flex-grow logo-font flex relative overflow-auto">
+      <main className="px-4 flex-grow main-font flex relative overflow-y-auto bg-[#fffefa]">
         <div className="w-full mx-auto">
           <Outlet /> {/* 페이지별 컨텐츠가 들어가는 부분 */}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="text-[.4rem] p-2 bg-gray-800 text-white text-center">
+      <footer className="hidden md:block  text-[.4rem] p-2 bg-gray-800 text-white text-center">
         &copy; 2024 Jeong. All rights reserved.
       </footer>
     </div>

@@ -27,7 +27,7 @@ export default function SplashPage() {
   }, [navigate]);
 
   return (
-    <div className="w-full border-red h-full flex items-center justify-center">
+    <div className="w-full h-full flex items-center justify-center">
       <h1 ref={logoRef} className=" text-5xl logo-font">
         Sequence
       </h1>

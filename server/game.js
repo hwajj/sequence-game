@@ -13,20 +13,14 @@ export const startGame = async (req, res) => {
     if (!roomData) {
       return res.status(404).send({ error: "Room not found" });
     }
-    if (roomData.gameStarted) {
-      return res.status(400).send({ error: "Game already started" });
-    }
+    // if (roomData.gameStarted) {
+    //   return res.status(400).send({ error: "Game already started" });
+    // }
 
     const players = Object.values(roomData.players || {});
 
     // 플레이어 정렬
     players.sort((a, b) => a.indexNumber - b.indexNumber); // indexNumber로 정렬
-    // console.log(players);
-
-    //팀 지정
-    players.forEach((player, index) => {
-      player.team = index % 2 === 0 ? "blue" : "orange";
-    });
     // console.log(players);
 
     // 덱 생성 및 섞기
@@ -48,8 +42,9 @@ export const startGame = async (req, res) => {
       cardsPerPlayer = 3;
     }
 
-    // 플레이어들에게 카드를 배분
-    players.forEach((player) => {
+    //팀 지정
+    players.forEach((player, index) => {
+      player.team = index % 2 === 0 ? "blue" : "orange";
       player.cards = shuffledDeck.splice(0, cardsPerPlayer);
     });
 
@@ -67,14 +62,15 @@ export const startGame = async (req, res) => {
       players: updatedPlayers,
       board: BOARD,
       deck: shuffledDeck,
-      currentTurn,
+      currentTurn: currentTurn,
+      gameFinished: false, // 게임이 다시 시작되므로 종료 상태 해제
+      sequenceIndies: [],
     });
 
     // 클라이언트에 게임 시작 알림과 함께 업데이트된 데이터를 전송
     res.status(200).send({
       message: "Game started",
       players: updatedPlayers,
-      board: BOARD,
       currentTurn,
     });
   } catch (error) {

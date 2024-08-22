@@ -48,15 +48,15 @@ function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 flex-grow logo-font border-green flex relative overflow-auto">
-        <div className="border-red  w-full mx-auto">
+      <main className="p-4 flex-grow logo-font flex relative overflow-auto">
+        <div className="w-full mx-auto">
           <Outlet /> {/* 페이지별 컨텐츠가 들어가는 부분 */}
         </div>
       </main>
 
       {/* Footer */}
       <footer className="text-[.4rem] p-2 bg-gray-800 text-white text-center">
-        &copy; 2024 hwajeong. All rights reserved.
+        &copy; 2024 Jeong. All rights reserved.
       </footer>
     </div>
   );

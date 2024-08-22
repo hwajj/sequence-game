@@ -20,6 +20,8 @@ const Board = ({
   sequenceIndices,
   gameFinished,
 }) => {
+  console.log(gameFinished);
+  console.log(sequenceIndices);
   const isSequence = (row, col) => {
     if (!sequenceIndices || !gameFinished) return;
     return sequenceIndices.some(
@@ -38,7 +40,7 @@ const Board = ({
     }
   };
   return (
-    <div className="grid grid-rows-10 gap-0 text-sm border-red mx-auto ">
+    <div className="grid grid-rows-10 gap-0 text-sm mx-auto ">
       {board?.map((row, rowIndex) => (
         <div key={rowIndex} className="grid grid-cols-10 gap-0">
           {row.map((card, colIndex) => {

@@ -10,12 +10,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import AlertMessage from "@/components/AlertMessage.jsx";
 import { cardMap } from "@/util/constants.js";
 import GameFinishedModal from "@/components/GameFinishedModal.jsx";
+import QuitGameModal from "@/components/QuitGameModal.jsx";
 function GamePage() {
   const { roomId } = useParams();
   const [user] = useAtom(userAtom);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-
   const [room, setRoom] = useState(null);
   const dbInstance = getDatabase();
   const [players, setPlayers] = useState([]);
@@ -28,9 +28,8 @@ function GamePage() {
   const [winner, setWinner] = useState(null);
   const [sequenceIndices, setSequenceIndices] = useState([]);
   const [gameFinished, setGameFinished] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const [isGameFinishedOpen, setGameFinishedOpen] = useState(false);
+  const [isQuitGameOpen, setQuitGameOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -118,7 +117,15 @@ function GamePage() {
     }
   };
 
-  const handleQuitGame = async () => {
+  const handleQuitGame = () => {
+    setQuitGameOpen(true);
+  };
+
+  const cancelQuitGame = () => {
+    setQuitGameOpen(false);
+  };
+  const confirmQuitGame = async () => {
+    setQuitGameOpen(false);
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/quit-game`,
@@ -132,6 +139,10 @@ function GamePage() {
   };
   const handleStartGame = async () => {
     console.log(players);
+    setGameFinished(false);
+
+    setSequenceIndices([]);
+
     if (players.length % 2 === 1) {
       setAlertMessage("짝수 인원으로 게임을 시작할수 있습니다 ");
       return;
@@ -214,7 +225,7 @@ function GamePage() {
   }
 
   return (
-    <div className="flex flex-col flex-grow h-full gap-4">
+    <div className="flex flex-col flex-grow h-full gap-4 max-w-[80rem] mx-auto">
       <div className="flex justify-between p-4 items-center">
         <h1 className="text-center w-full text-[1.rem] main-font">
           {room && room.roomName}
@@ -312,27 +323,34 @@ function GamePage() {
         ))}
       </div>
       <div>
-        {players.map(
-          (player, index) =>
-            player.userId === currentTurn && (
-              <p key={index}> {player.userName}님의 차례입니다 </p>
-            ),
-        )}
+        {room?.gameStarted &&
+          players.map(
+            (player, index) =>
+              player.userId === currentTurn && (
+                <p key={index}> {player.userName}님의 차례입니다 </p>
+              ),
+          )}
+        {!room?.gameStarted && <p>게임이 끝났습니다</p>}
         {clickedCard && clickedCard.includes("J") && (
           <ul>
             <li>J 카드는 J카드의 규칙이 있습니다.</li>
             <li>
               정면을 바라보는 J 카드 (♣,♦) 인 경우 원하는 위치에 놓을 수
-              있습니다{" "}
+              있습니다.
             </li>
             <li>
               옆을 바라보는 J 카드 (♥,♠) 인 경우 상대방의 칩을 제거할 수
-              있습니다. 있습니다{" "}
+              있습니다.
+            </li>
+            <li>
+              J 카드를 사용하려면{" "}
+              <span className={"text-red-500"}>J 카드 클릭 후 </span> 놓고싶은
+              위치에 클릭하세요!!
             </li>
           </ul>
         )}
       </div>
-      <div className={"mt-auto border-blue flex justify-between items-center"}>
+      <div className={"mt-auto flex justify-between items-center"}>
         <button
           onClick={leaveRoom}
           className={
@@ -343,15 +361,15 @@ function GamePage() {
         </button>
       </div>
       <GameFinishedModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
+        isOpen={isGameFinishedOpen}
+        onClose={() => setGameFinishedOpen(false)}
         winner={winner}
       />
-      {/*알림메시지 컴포넌트*/}
-      <AlertMessage
-        message={alertMessage}
-        duration={1000}
-        onClose={() => setAlertMessage("")}
+
+      <QuitGameModal
+        isOpen={isQuitGameOpen}
+        onClose={cancelQuitGame}
+        onConfirm={confirmQuitGame}
       />
     </div>
   );

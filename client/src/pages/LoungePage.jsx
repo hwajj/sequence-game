@@ -3,6 +3,7 @@ import { userAtom } from "@/atoms/userAtom.js";
 import { useAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { isGameTutorialModalOpenAtom } from "@/atoms/modalAtom.js";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import CreateRoomModal from "@/components/CreateRoomModal.jsx";
 import AlertMessage from "@/components/AlertMessage.jsx";
@@ -19,15 +20,6 @@ const LoungePage = () => {
 
   const dbInstanceRef = useRef();
   dbInstanceRef.current = getDatabase();
-
-  useEffect(() => {
-    const checkUserRoom = async () => {
-      const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/hello-world`,
-      );
-      console.log(response);
-    };
-  }, []);
   useEffect(() => {
     if (user) {
       const checkUserRoom = async () => {
@@ -40,6 +32,7 @@ const LoungePage = () => {
         );
 
         const roomData = response.data;
+
         if (roomData?.roomId) {
           // 사용자가 참여 중인 방이 있다면 해당 방으로 리다이렉트
           navigate(`/room/${roomData.roomId}`);

@@ -41,6 +41,7 @@ function GamePage() {
 
     const roomRef = ref(dbInstance, `rooms/${roomId}`); // 해당 방의 전체 경로 참조
 
+    let previousPlayerCount = 0;
     // 실시간 데이터 구독
     const unsubscribe = onValue(
       roomRef,
@@ -92,6 +93,17 @@ function GamePage() {
           if (roomData.gameStarted) {
             setSequenceIndices([]);
           }
+
+          // console.log(players.length);
+          // console.log(previousPlayerCount);
+          // 플레이어 수를 감지하여 플레이어가 줄어든 경우 처리
+          if (players.length < previousPlayerCount && roomData.gameStarted) {
+            setAlertMessage(
+              `플레이어가 나가서 게임이 중단되었습니다. ${roomData.winner} 팀 승리.`,
+            );
+          }
+          // 현재 플레이어 수 업데이트
+          previousPlayerCount = players.length;
 
           if (roomData.gameFinished) {
             // console.log(roomData);

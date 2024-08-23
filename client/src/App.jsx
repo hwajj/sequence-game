@@ -1,5 +1,4 @@
 import React from "react";
-import { QueryClient, QueryClientProvider } from "react-query";
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AlertMessage from "@/components/AlertMessage.jsx";
@@ -11,7 +10,6 @@ import GameTutorialModal from "@/components/GameTutorialModal.jsx";
 import GamePage from "@/pages/GamePage.jsx";
 
 function App() {
-  const queryClient = new QueryClient();
   return (
     <Router>
       <AlertMessage />

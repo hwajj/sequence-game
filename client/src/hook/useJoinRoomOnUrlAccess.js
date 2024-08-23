@@ -58,10 +58,8 @@ const useUserRoomRedirect = (user, setAlertMessage) => {
             navigate("/lounge");
           }
         } catch (joinError) {
-          console.log(joinError);
           const errorMessage =
             joinError?.response?.data?.error || "An error occurred";
-
           setAlertMessage(errorMessage);
           navigate("/lounge");
         }

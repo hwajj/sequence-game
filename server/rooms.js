@@ -1,5 +1,4 @@
 import { db } from "./firebaseAdmin.js";
-import { v4 as uuidv4 } from "uuid";
 import shortid from "shortid";
 import admin from "firebase-admin";
 import { BOARD } from "./data.js";
@@ -101,7 +100,7 @@ export const joinRoom = async (req, res) => {
     const roomData = roomSnapshot.val();
     // console.log(roomData);
     // 방의 조건 확인: 게임이 이미 시작되었거나, 플레이어가 8명을 초과한 경우
-    if (roomData.gameStarted) {
+    if (roomData.gameStarted && !roomData.gameFinished) {
       return res.status(400).send({ error: "게임이 이미 시작했습니다." });
     }
 

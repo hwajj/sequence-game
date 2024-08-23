@@ -70,6 +70,7 @@ export const startGame = async (req, res) => {
     // 클라이언트에 게임 시작 알림과 함께 업데이트된 데이터를 전송
     res.status(200).send({
       message: "Game started",
+      sequenceIndices: [],
       // players: updatedPlayers,
       currentTurn,
     });
@@ -253,7 +254,6 @@ export const placeCard = async (req, res) => {
 
     const nextIndex = (currentIndex + 1) % players.length;
     const nextTurn = players[nextIndex].userId;
-    console.log(nextTurn);
 
     // 덱에서 새 카드 나누기
     if (roomData.deck.length > 0) {

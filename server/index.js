@@ -13,6 +13,7 @@ import {
 
 import { startGame, quitGame, placeCard } from "./game.js";
 
+//import serverless from "serverless-http"; // Netlify functions에서 사용
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -65,3 +66,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+// Netlify Functions로 내보내기
+// export const handler = serverless(app);

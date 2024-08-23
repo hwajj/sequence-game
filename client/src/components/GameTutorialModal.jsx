@@ -105,8 +105,8 @@ export default function GameTutorialModal() {
                 있다.
               </li>
             </ul>
-            <div className="image-container xs:hidden w-[391px] h-80 flex border-black border-[.1rem]">
-              <div className="flex w-full flex-col gap-2 text-center border-black border-r-[.07rem]">
+            <div className="image-container hidden xs:flex w-[391px] h-80 border-black border-[.1rem]">
+              <div className="flex w-full flex-col gap-2 text-center border-r-[.07rem]  border-black">
                 <h3 className="mt-2">눈이 하나 있는 Jack</h3>
                 <div className="flex gap-2 items-center justify-center">
                   <img src={SPADE_JACK} alt="Jack" className="w-20 h-24" />
@@ -146,7 +146,7 @@ function SequenceSimulationOne() {
     svgRefs.current.forEach((el, index) => {
       gsap.to(el, {
         autoAlpha: 1,
-        delay: index * 1.5, // 1.5초 간격으로 애니메이션 실행
+        delay: index * 1.5,
         duration: 0.5, // 애니메이션 지속 시간은 0.5초로 설정
       });
     });
@@ -157,7 +157,7 @@ function SequenceSimulationOne() {
   }, []);
   return (
     <div
-      className="image-container xs:hidden relative h-80"
+      className="image-container hidden xs:block relative h-80"
       onClick={playAnimation}
     >
       <img
@@ -175,9 +175,9 @@ function SequenceSimulationOne() {
         { top: "60px", left: "7px", color: "orange" },
         { top: "32px", left: "127px", color: "blue" },
         { top: "115px", left: "7px", color: "orange" },
-        { top: "140px", left: "164px", color: "blue" },
+        { top: "144px", left: "164px", color: "blue" },
         { top: "60px", left: "164px", color: "orange" },
-        { top: "250px", left: "310px", color: "blue" },
+        { top: "256px", left: "315px", color: "blue" },
         { top: "32px", left: "164px", color: "orange" },
       ].map((item, index) => (
         <svg
@@ -202,20 +202,28 @@ function SequenceSimulationTwo() {
   useEffect(() => {
     gsap.set(sequenceBox1.current, { autoAlpha: 0 }); // 초기 상태: 보이지 않게 설정
     gsap.set(sequenceBox2.current, { autoAlpha: 0 }); // 초기 상태: 보이지 않게 설정
+    // 깜빡이는 효과
     gsap.to(sequenceBox1.current, {
       autoAlpha: 1,
-      delay: 0.6,
-      duration: 0.5, // 깜빡이는 속도 (0.5초마다 깜빡임)
+      duration: 0.7,
+      delay: 0.5,
+      ease: "power1.inOut",
+      yoyo: true,
+      repeat: 2,
     });
+
     gsap.to(sequenceBox2.current, {
       autoAlpha: 1,
-      delay: 0.6,
-      duration: 0.5, // 깜빡이는 속도 (0.5초마다 깜빡임)
+      duration: 0.7,
+      delay: 0.5,
+      ease: "power1.inOut",
+      yoyo: true,
+      repeat: 2,
     });
   }, []);
 
   return (
-    <div className="image-container xs:hidden w-[391px] relative h-80">
+    <div className="image-container hidden xs:block w-[391px] relative h-80">
       <img
         translate="no"
         className="pointer-events-none"

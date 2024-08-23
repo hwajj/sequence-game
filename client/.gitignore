@@ -18,8 +18,9 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/react
-
+/dist
 
 
 # 환경변수
 .env
+.env.production

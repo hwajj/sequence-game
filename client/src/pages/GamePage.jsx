@@ -89,6 +89,10 @@ function GamePage() {
             setCurrentTurn(roomData.currentTurn);
           }
 
+          if (roomData.gameStarted) {
+            setSequenceIndices([]);
+          }
+
           if (roomData.gameFinished) {
             // console.log(roomData);
             setGameFinished(roomData.gameFinished);

@@ -1,0 +1,6 @@
+# 모든 텍스트 파일에서 일관된 LF 줄 끝을 강제
+* text=auto
+
+# 특정 파일에서 CRLF를 강제하려면 다음과 같이 설정
+*.js text eol=lf
+*.json text eol=lf

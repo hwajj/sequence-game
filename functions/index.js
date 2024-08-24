@@ -1,3 +1,4 @@
+import functions from "firebase-functions";
 import express from "express";
 import cors from "cors";
 import admin from "./firebaseAdmin.js";
@@ -13,7 +14,7 @@ import {
 
 import { startGame, quitGame, placeCard } from "./game.js";
 
-//import serverless from "serverless-http"; // Netlify functions에서 사용
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -62,9 +63,10 @@ app.post("/quit-game", quitGame);
 //place Card
 app.post("/place-card", placeCard);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-// Netlify Functions로 내보내기
-// export const handler = serverless(app);
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
+
+// Firebase Functions로 내보내기
+export const api = functions.https.onRequest(app);

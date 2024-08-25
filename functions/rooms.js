@@ -94,18 +94,18 @@ export const joinRoom = async (req, res) => {
     const roomSnapshot = await roomRef.once("value");
 
     if (!roomSnapshot.exists()) {
-      return res.status(404).send({ error: "방을 찾을 수 없습니다" });
+      return res.status(404).send({ message: "방을 찾을 수 없습니다" });
     }
 
     const roomData = roomSnapshot.val();
     // console.log(roomData);
     // 방의 조건 확인: 게임이 이미 시작되었거나, 플레이어가 8명을 초과한 경우
     if (roomData.gameStarted && !roomData.gameFinished) {
-      return res.status(400).send({ error: "게임이 이미 시작했습니다." });
+      return res.status(400).send({ message: "게임이 이미 시작했습니다." });
     }
 
     if (Object.keys(roomData.players || {}).length >= roomData.totalPlayers) {
-      return res.status(403).send({ error: "방의 정원이 가득 찼습니다" });
+      return res.status(403).send({ message: "방의 정원이 가득 찼습니다" });
     }
     // 새로운 플레이어에게 부여할 indexNumber 결정
     const newIndexNumber = ++roomData.indexNumber;
@@ -223,7 +223,8 @@ export const userRoom = async (req, res) => {
     const userRoomData = userRoomSnapshot.val();
 
     if (!userRoomData) {
-      return res.status(404).send({ error: "No room found for this user" });
+      return res.status(200).send({ message: "No room found for this user" });
+
     }
 
     res.status(200).send(userRoomData);

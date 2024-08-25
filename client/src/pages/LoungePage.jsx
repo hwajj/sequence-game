@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { userAtom } from "@/atoms/userAtom.js";
-import { useAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { isGameTutorialModalOpenAtom } from "@/atoms/modalAtom.js";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import CreateRoomModal from "@/components/CreateRoomModal.jsx";
 import AlertMessage from "@/components/AlertMessage.jsx";
+import { useAtom } from "jotai";
+import {alertMessageAtom} from "@/atoms/alertAtoms.js";
 
 const LoungePage = () => {
   const [loading, setLoading] = useState(true); // 로딩 상태
@@ -16,7 +16,8 @@ const LoungePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
-  const [alertMessage, setAlertMessage] = useState("");
+  const [alertMessage, setAlertMessage] = useAtom(alertMessageAtom);
+
 
   const dbInstanceRef = useRef();
   dbInstanceRef.current = getDatabase();
@@ -69,24 +70,21 @@ const LoungePage = () => {
       unsubscribe();
     };
   }, []);
-  const showAlert = (message) => {
-    setAlertMessage(message);
-  };
 
   //방 참여하기
   const handleJoinRoom = async (roomId) => {
     const room = rooms.find((r) => r.roomId === roomId);
     // console.log(room);
     if (!room) {
-      showAlert("방을 찾을 수 없습니다");
+      setAlertMessage("방을 찾을 수 없습니다");
       return;
     }
     if (room.gameStarted) {
-      showAlert("게임이 이미 시작되었습니다");
+      setAlertMessage("게임이 이미 시작되었습니다");
       return;
     }
     if (room && room.totalPlayers === Object.values(room.players)?.length) {
-      showAlert("게임 인원이 이미 꽉 찼습니다");
+      setAlertMessage("게임 인원이 이미 꽉 찼습니다");
       return;
     }
     try {

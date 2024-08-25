@@ -272,7 +272,7 @@ function GamePage() {
         </h1>
         {user.uid === host && (
           <button
-            className={`absolute xs:relative bottom-0 right-0 mb-2 border-blue-600 rounded-[.25rem] w-20 h-10 lg:w-40 lg:h-10 ml-auto ${
+            className={`border-blue-600 hidden xs:block rounded-[.25rem] w-20 h-10 lg:w-40 lg:h-10 ml-auto ${
               room?.gameStarted && !room?.gameFinished
                 ? "bg-gray-500 text-white"
                 : "bg-green-500"
@@ -389,10 +389,26 @@ function GamePage() {
         <button
           onClick={leaveRoom}
           className={
-            "text-white mt-auto p-2 text-sm md:text-xl md:h-10 rounded-sm main-font bg-gray-500 "
+            "text-white mt-auto p-2 text-sm md:text-xl md:h-10 rounded-[.25rem] main-font bg-gray-500 "
           }
         >
           나가기
+        </button>
+        <button
+          className={`border-blue-600 xs:hidden block rounded-[.25rem] text-sm p-2 ${
+            room?.gameStarted && !room?.gameFinished
+              ? "bg-gray-500 text-white"
+              : "bg-green-500"
+          }`}
+          onClick={
+            room?.gameStarted && !room?.gameFinished
+              ? handleQuitGame
+              : handleStartGame
+          }
+        >
+          {room?.gameStarted && !room?.gameFinished
+            ? "게임 중단"
+            : "게임 시작"}
         </button>
       </div>
       <GameFinishedModal

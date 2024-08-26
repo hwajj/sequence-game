@@ -15,7 +15,7 @@ import { alertMessageAtom } from "@/atoms/alertAtoms.js";
 import { truncateName } from "@/util/util.js";
 function GamePage() {
   const { roomId } = useParams();
-  const [user] = useAtom(userAtom);
+  const [user, setUser] = useAtom(userAtom);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
@@ -32,6 +32,8 @@ function GamePage() {
   const [isGameFinishedOpen, setGameFinishedOpen] = useState(false);
   const [isQuitGameOpen, setQuitGameOpen] = useState(false);
   const setAlertMessage = useSetAtom(alertMessageAtom);
+  const [gameStarted, setGameStarted] = useState(false);
+
   // GamePage 컴포넌트 내에서 사용
   useJoinRoomOnUrlAccess(user, setAlertMessage);
   useEffect(() => {
@@ -66,11 +68,13 @@ function GamePage() {
             setHost(hostPlayer.userId);
           }
           const currentPlayer = roomData.players[user.uid];
-
           if (currentPlayer && currentPlayer.cards) {
-            if (room?.gameStarted) {
-              setUserCards(currentPlayer.cards); // 서버에서 업데이트된 카드 상태 반영
+            if (roomData.gameStarted) {
+              setGameStarted(true); //대기중 -> 게임 중
+              setUserCards(currentPlayer.cards);
             } else {
+              setBoard(BOARD); // 개임 중단 시 보드 상태 리셋
+              setGameStarted(false); //게임 시작 => 대기중
               setTimeout(() => {
                 setUserCards(currentPlayer.cards); // 서버에서 업데이트된 카드 상태 반영
               }, 300); // 500ms 지연
@@ -98,9 +102,17 @@ function GamePage() {
           // console.log(previousPlayerCount);
           // 플레이어 수를 감지하여 플레이어가 줄어든 경우 처리
           if (players.length < previousPlayerCount && roomData.gameStarted) {
-            setAlertMessage(
-              `플레이어가 나가서 게임이 중단되었습니다. ${roomData.winner} 팀 승리.`,
-            );
+            if (players.length > 2) {
+              setAlertMessage(
+                `플레이어가 나가서 게임이 중단되었습니다. ${roomData.winner} 팀 승리.`,
+              );
+            } else {
+              setAlertMessage(
+                `플레이어가 나가서 게임이 중단되었습니다. ${players[0].team} 팀 승리.`,
+              );
+            }
+            console.log("================================");
+            console.log(players[0].team);
           }
           // 현재 플레이어 수 업데이트
           previousPlayerCount = players.length;
@@ -112,6 +124,7 @@ function GamePage() {
             setWinner(roomData.winner);
             setClickedCard(null);
             setGameFinishedOpen(true);
+            setGameStarted(false);
           }
         } else {
           navigate("/lounge");
@@ -145,6 +158,7 @@ function GamePage() {
 
   const handleQuitGame = () => {
     setQuitGameOpen(true);
+    setBoard(BOARD);
   };
 
   const cancelQuitGame = () => {
@@ -152,6 +166,7 @@ function GamePage() {
   };
   const confirmQuitGame = async () => {
     setQuitGameOpen(false);
+
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/quit-game`,
@@ -197,6 +212,14 @@ function GamePage() {
   };
 
   const handlePlaceCard = async (card, position) => {
+    console.log(gameStarted);
+    if (!gameStarted) {
+      setAlertMessage(
+        "게임이 아직 시작되지 않았습니다. 방장은 게임을 시작해주세요.",
+      );
+      return;
+    }
+
     if (gameFinished) {
       // 게임끝났습니다 메시지 다시 보여주기
       setGameFinishedOpen(true);
@@ -270,7 +293,7 @@ function GamePage() {
         <h1 className="text-center xs:block hidden xs:text-[2rem] lg:text-[2.5rem] font-bold text-gray-800 main-font">
           {room && room.roomName}
         </h1>
-        {user.uid === host && (
+        {user.uid === host ? (
           <button
             className={`border-blue-600 hidden xs:block rounded-[.25rem] w-20 h-10 lg:w-40 lg:h-10 ml-auto ${
               room?.gameStarted && !room?.gameFinished
@@ -286,6 +309,13 @@ function GamePage() {
             {room?.gameStarted && !room?.gameFinished
               ? "게임 중단"
               : "게임 시작"}
+          </button>
+        ) : (
+          <button className="pointer-events-none no-select">
+            {" "}
+            {room?.gameStarted && !room?.gameFinished
+              ? "게임 중"
+              : "대기 중"}{" "}
           </button>
         )}
       </div>
@@ -351,7 +381,7 @@ function GamePage() {
           {players.slice(Math.ceil(players.length / 2)).map((player, index) => (
             <div
               key={index}
-              className={`px-4 py-2 relative border-2 text-[.7rem] main-font min-w-20 text-center rounded-[.25rem] 
+              className={`px-4 py-2 relative border-2 text-[.7rem] main-font min-w-20 text-center rounded-[.25rem]
                  ${
                    player.team === "orange"
                      ? "border-orange-300"
@@ -371,7 +401,7 @@ function GamePage() {
           ))}
         </div>*/}
       </div>
-      <div className="flex flex-wrap justify-center gap-2 items-center mt-4 xs:mt-6 lg:mt-10 h-30">
+      <div className="flex flex-wrap justify-center gap-2 items-center mt-4 h-30">
         {userCards?.map((card, index) => (
           <img
             key={index}
@@ -385,7 +415,7 @@ function GamePage() {
         ))}
       </div>
 
-      <div className={"mb-2 lg:mb-4 flex justify-between items-center"}>
+      <div className={"my-2 flex justify-between items-center"}>
         <button
           onClick={leaveRoom}
           className={
@@ -394,22 +424,24 @@ function GamePage() {
         >
           나가기
         </button>
-        <button
-          className={`border-blue-600 xs:hidden block rounded-[.25rem] text-sm p-2 ${
-            room?.gameStarted && !room?.gameFinished
-              ? "bg-gray-500 text-white"
-              : "bg-green-500"
-          }`}
-          onClick={
-            room?.gameStarted && !room?.gameFinished
-              ? handleQuitGame
-              : handleStartGame
-          }
-        >
-          {room?.gameStarted && !room?.gameFinished
-            ? "게임 중단"
-            : "게임 시작"}
-        </button>
+        {user.uid === host && (
+          <button
+            className={`border-blue-600 xs:hidden block rounded-[.25rem] text-sm p-2 ${
+              room?.gameStarted && !room?.gameFinished
+                ? "bg-gray-500 text-white"
+                : "bg-green-500"
+            }`}
+            onClick={
+              room?.gameStarted && !room?.gameFinished
+                ? handleQuitGame
+                : handleStartGame
+            }
+          >
+            {room?.gameStarted && !room?.gameFinished
+              ? "게임 중단"
+              : "게임 시작"}
+          </button>
+        )}
       </div>
       <GameFinishedModal
         isOpen={isGameFinishedOpen}

@@ -158,7 +158,7 @@ export const placeCard = async (req, res) => {
   try {
     const { roomId, userId, card, position } = req.body;
 
-    // console.log(roomId, userId, card, position);
+    console.log(roomId, userId, card, position);
     // 방 데이터 가져오기
     const roomRef = db.ref(`rooms/${roomId}`);
     const roomSnapshot = await roomRef.once("value");
@@ -166,6 +166,10 @@ export const placeCard = async (req, res) => {
 
     if (!roomData) {
       return res.status(404).send({ error: "Room not found" });
+    }
+
+    if(!roomData.board ) {
+      return res.status(404).send({ error: "Game not started!" });
     }
 
     let currentPlayer;
@@ -182,6 +186,7 @@ export const placeCard = async (req, res) => {
 
     // 보드 상태 업데이트 (전송된 위치를 기준으로)
     const [row, col] = position;
+
     // J 카드에 대한 규칙 적용
     if (card.includes("J")) {
       console.log(card + " in player's hand J'");
@@ -209,11 +214,14 @@ export const placeCard = async (req, res) => {
       }
     } else {
       // 일반적인 카드에 대한 처리
+      console.log(roomData.board, row, col)
       if (!roomData.board[row] || !roomData.board[row][col]) {
         return res.status(400).send({ error: "Invalid board position" });
       }
       roomData.board[row][col].occupiedColor = player.team;
     }
+
+    // console.log(player.cards)
 
     // 플레이어가 제출한 카드 제거
     const cardIndex = player.cards.findIndex((c) => c === card);

@@ -1,5 +1,6 @@
 import React from "react";
-
+import { useAtom } from "jotai";
+import { userAtom } from "@/atoms/userAtom.js";
 const getChipStyle = (color) => {
   switch (color) {
     case "blue":
@@ -46,6 +47,7 @@ const Board = ({
         >
           {row.map((card, colIndex) => {
             // 카드의 무늬에 따라 글씨 색상 적용
+            // 하트나 다이아면 빨간색.
             const isRedSuit =
               card.value.includes("♦") || card.value.includes("♥");
             const textColor = isRedSuit ? "text-red-600" : "text-gray-800";

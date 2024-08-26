@@ -15,7 +15,7 @@ import { alertMessageAtom } from "@/atoms/alertAtoms.js";
 import { truncateName } from "@/util/util.js";
 function GamePage() {
   const { roomId } = useParams();
-  const [user, setUser] = useAtom(userAtom);
+  const [user] = useAtom(userAtom);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
@@ -72,6 +72,7 @@ function GamePage() {
             if (roomData.gameStarted) {
               setGameStarted(true); //대기중 -> 게임 중
               setUserCards(currentPlayer.cards);
+              setGameFinished(false);
             } else {
               setBoard(BOARD); // 개임 중단 시 보드 상태 리셋
               setGameStarted(false); //게임 시작 => 대기중
@@ -111,8 +112,6 @@ function GamePage() {
                 `플레이어가 나가서 게임이 중단되었습니다. ${players[0].team} 팀 승리.`,
               );
             }
-            console.log("================================");
-            console.log(players[0].team);
           }
           // 현재 플레이어 수 업데이트
           previousPlayerCount = players.length;

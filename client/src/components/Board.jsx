@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useAtom } from "jotai";
+import { userAtom } from "@/atoms/userAtom.js";
 
 const getChipStyle = (color) => {
   switch (color) {
@@ -13,13 +15,66 @@ const getChipStyle = (color) => {
   }
 };
 
+const getChipEffect = (color) => {
+  switch (color) {
+    case "blue":
+      return "bg-blue-100";
+    case "orange":
+      return "bg-orange-100";
+    case "green":
+      return "bg-green-100";
+    default:
+      return "hidden"; // 기본 배경 색상
+  }
+};
+
 const Board = ({
+  currentTurn,
+  players,
   board,
   onCardClick,
   clickedCard,
   sequenceIndices,
   gameFinished,
 }) => {
+  const [changedPositions, setChangedPositions] = useState([]);
+  const [highlightedPositions, setHighlightedPositions] = useState({});
+  const previousBoardRef = useRef(board);
+  const [user] = useAtom(userAtom);
+  const myTeamRef = useRef(null);
+
+  myTeamRef.current = players.find((player) => player.userId === user.uid).team;
+
+  useEffect(() => {
+    const changedPositionsTemp = [];
+    const newHighlightedPositions = {};
+
+    for (let rowIndex = 0; rowIndex < board.length; rowIndex++) {
+      for (let colIndex = 0; colIndex < board[rowIndex].length; colIndex++) {
+        if (
+          board[rowIndex][colIndex].occupiedColor !==
+          previousBoardRef.current[rowIndex][colIndex].occupiedColor
+        ) {
+          changedPositionsTemp.push([rowIndex, colIndex]);
+          newHighlightedPositions[`${rowIndex}-${colIndex}`] =
+            board[rowIndex][colIndex].occupiedColor;
+        }
+      }
+    }
+
+    setChangedPositions(changedPositionsTemp);
+    setHighlightedPositions(newHighlightedPositions);
+    previousBoardRef.current = board; // 현재 보드를 이전 보드로 업데이트
+
+    // 3초 후에 하이라이트 제거
+    const timer = setTimeout(() => {
+      setChangedPositions([]);
+      setHighlightedPositions({});
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [board]);
+
   const isSequence = (row, col) => {
     if (!sequenceIndices || !gameFinished) return;
     return sequenceIndices.some(
@@ -37,8 +92,36 @@ const Board = ({
       }
     }
   };
+
+  const getPlacedChipHighlight = (rowIndex, colIndex) => {
+    const key = `${rowIndex}-${colIndex}`;
+    const highlightColor = highlightedPositions[key];
+    const color = `${getChipEffect(highlightColor)} `;
+    return highlightColor ? color : "";
+  };
+
+  const isPlaceable = (card, rowIndex, colIndex) => {
+    if (clickedCard?.includes("J")) {
+      if (clickedCard.includes("♥") || clickedCard.includes("♠")) {
+        // 하트 또는 스페이드 J카드: 상대팀의 칩만 제거 가능
+        return board[rowIndex][colIndex].occupiedColor &&
+          board[rowIndex][colIndex].occupiedColor !== myTeamRef.current
+          ? `bg-${myTeamRef.current}-200`
+          : "";
+      } else if (clickedCard.includes("♦") || clickedCard.includes("♣")) {
+        // 다이아 또는 클럽 J카드: 빈 칸에만 놓을 수 있음
+        return board[rowIndex][colIndex].occupiedColor === ""
+          ? `bg-${myTeamRef.current}-200`
+          : "";
+      }
+    } else if (clickedCard === card.value) {
+      return `bg-${myTeamRef.current}-200 transition-colors `;
+    }
+    return "";
+  };
+
   return (
-    <div className="grid items-center justify-center rounded-sm mx-4 grid-rows-10 gap-0 text-[.7rem] xs:text-[.9rem] sm:text-lg  lg:text-xl">
+    <div className="grid items-center justify-center rounded-sm mx-4 grid-rows-10  gap-0 text-[.7rem] xs:text-[.9rem] sm:text-lg  lg:text-xl">
       {board?.map((row, rowIndex) => (
         <div
           key={rowIndex}
@@ -50,14 +133,16 @@ const Board = ({
             const isRedSuit =
               card.value.includes("♦") || card.value.includes("♥");
             const textColor = isRedSuit ? "text-red-600" : "text-gray-800";
+            const placeableClass = isPlaceable(card, rowIndex, colIndex);
 
             return (
               <div
                 key={colIndex}
                 className={`no-select relative border-[.09rem] overflow-hidden border-gray-300
                  w-[1.7rem] h-[1.7rem]  xs:w-[2rem] xs:h-[2rem] sm:w-[2.5rem] sm:h-[2.5rem] lg:h-[3rem] rounded-sm
-                ${clickedCard === card.value ? "bg-yellow-100 transition-colors duration-75" : "bg-gray"}
+                  ${placeableClass}
                   ${isSequence(rowIndex, colIndex) ? "bg-yellow-300" : ""}   
+                  ${getPlacedChipHighlight(rowIndex, colIndex)}
                 cursor-pointer flex items-center justify-center`}
                 onClick={() =>
                   handleCardClick(card.value, [rowIndex, colIndex])

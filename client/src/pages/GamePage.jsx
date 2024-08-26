@@ -99,8 +99,6 @@ function GamePage() {
             setSequenceIndices([]);
           }
 
-          // console.log(players.length);
-          // console.log(previousPlayerCount);
           // 플레이어 수를 감지하여 플레이어가 줄어든 경우 처리
           if (players.length < previousPlayerCount && roomData.gameStarted) {
             if (players.length > 2) {
@@ -207,11 +205,11 @@ function GamePage() {
       // 게임끝났습니다 메시지 다시 보여주기
       setGameFinishedOpen(true);
     }
+
     setClickedCard(card); // 클릭된 카드를 상태로 설정
   };
 
   const handlePlaceCard = async (card, position) => {
-    console.log(gameStarted);
     if (!gameStarted) {
       setAlertMessage(
         "게임이 아직 시작되지 않았습니다. 방장은 게임을 시작해주세요.",
@@ -370,6 +368,8 @@ function GamePage() {
             ))}
         </div>
         <Board
+          currentTurn={currentTurn}
+          players={players}
           board={board}
           onCardClick={handlePlaceCard}
           clickedCard={clickedCard}

@@ -1,6 +1,12 @@
 // tailwind.config.js
 module.exports = {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
+  safelist: [
+    "bg-orange-200",
+    "bg-blue-200",
+    "bg-green-200",
+    // 다른 동적 클래스들 추가
+  ],
   theme: {
     extend: {
       screens: {

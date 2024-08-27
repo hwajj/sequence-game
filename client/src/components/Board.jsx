@@ -43,8 +43,9 @@ const Board = ({
   const [user] = useAtom(userAtom);
   const myTeamRef = useRef(null);
 
-  myTeamRef.current = players.find((player) => player.userId === user.uid).team;
-
+  myTeamRef.current =
+    players.find((player) => player.userId === user.uid)?.team || null;
+  console.log(myTeamRef.current);
   useEffect(() => {
     const changedPositionsTemp = [];
     const newHighlightedPositions = {};

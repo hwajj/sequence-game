@@ -111,7 +111,8 @@ const Board = ({
         return classNames({
           [teamColorClass]:
             board[rowIndex][colIndex].occupiedColor &&
-            board[rowIndex][colIndex].occupiedColor !== myTeamRef.current,
+            board[rowIndex][colIndex].occupiedColor !== myTeamRef.current &&
+            !board[rowIndex][colIndex].isSequence,
         });
       } else if (clickedCard.includes("♦") || clickedCard.includes("♣")) {
         // 다이아 또는 클럽 J카드: 빈 칸에만 놓을 수 있음

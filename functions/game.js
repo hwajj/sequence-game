@@ -168,23 +168,24 @@ export const placeCard = async (req, res) => {
     }
 
     if (!roomData.board) {
-      return res.status(404).send({ error: "Game not started!" });
+      return res.status(404).send({ error: "게임이 시작하지 않았습니다." });
     }
 
     // 현재 턴이 맞는지 확인
     if (roomData.currentTurn !== userId) {
-      return res.status(400).send({ error: "It's not your turn" });
+      return res.status(400).send({ error: "차례가 아닙니다" });
     }
     // 카드가 플레이어의 카드에 있는지 확인
     const player = roomData.players[userId];
 
     if (!player.cards.includes(card)) {
-      return res.status(400).send({ error: "Card not in player's hand" });
+      return res.status(400).send({ error: "가지고 있지 않은 카드입니다" });
     }
 
     // 보드 상태 업데이트 (전송된 위치를 기준으로)
     const [row, col] = position;
 
+    // return;
     // J 카드에 대한 규칙 적용
     if (card.includes("J")) {
       // console.log(card + " in player's hand J'");
@@ -192,14 +193,17 @@ export const placeCard = async (req, res) => {
         // 상대방의 칩을 제거하는 J 카드 (♠,♥)
         // console.log(card + 'card.includes("♠") || card.includes("♥")');
         const targetPosition = roomData.board[row][col];
-        // console.log(targetPosition);
-        if (
-          targetPosition &&
-          targetPosition.occupiedColor &&
-          !targetPosition.protected &&
-          targetPosition.occupiedColor !== player.team
-        ) {
-          targetPosition.occupiedColor = ""; // 상대방의 칩 제거
+        if (targetPosition.isSequence) {
+          return res.status(400).send({ error: "여기는 이미 시퀀스입니다" });
+        }
+        if (targetPosition && targetPosition.occupiedColor) {
+          if (targetPosition.occupiedColor !== player.team) {
+            targetPosition.occupiedColor = ""; // 상대방의 칩 제거
+          } else {
+            return res
+              .status(400)
+              .send({ error: "옆을 보는 J 카드의 규칙을 확인하세요" });
+          }
         }
       } else if (card.includes("♦") || card.includes("♣")) {
         console.log(card + 'card.include"♦") || card.includes("♣"');
@@ -208,6 +212,10 @@ export const placeCard = async (req, res) => {
         console.log(targetPosition);
         if (targetPosition && !targetPosition.occupiedColor) {
           targetPosition.occupiedColor = player.team;
+        } else if (targetPosition && targetPosition.occupiedColor) {
+          return res
+            .status(400)
+            .send({ error: "앞을 보는 J 카드의 규칙을 확인하세요" });
         }
       }
     } else {
@@ -233,6 +241,11 @@ export const placeCard = async (req, res) => {
       roomData.board,
       player.team,
     );
+
+    // sequenceIndices를 사용하여 roomData.board의 isSequence를 업데이트
+    sequenceIndices.forEach(([r, c]) => {
+      roomData.board[r][c].isSequence = true;
+    });
 
     // 시퀀스가 두 개 완성된 경우
     if (sequenceCount >= 2) {
@@ -313,24 +326,45 @@ export const checkWin = (board, playerTeam) => {
       return cell;
     }),
   );
-
   const addSequenceIndices = (indices) => {
-    sequenceIndices.push(...indices);
+    indices.forEach((indexPair) => {
+      sequenceIndices.push(indexPair);
+    });
   };
 
   const checkAndAddSequence = (sequence) => {
     if (sequence.length === sequenceLength) {
       if (!isDuplicateSequence(sequence)) {
         sequenceCount++;
+
         addSequenceIndices(sequence);
+        sequence.forEach(([r, c]) => {
+          tempBoard[r][c].isSequence = true; // 시퀀스 위치 업데이트
+        });
       }
     }
   };
 
   const isDuplicateSequence = (newSequence) => {
-    return sequenceIndices.some(([r, c]) =>
-      newSequence.some(([newR, newC]) => r === newR && c === newC),
-    );
+    // 각 existingSequence가 배열로 올바르게 설정되어 있는지 확인
+    return sequenceIndices.some((existingSequence) => {
+      if (!Array.isArray(existingSequence)) {
+        console.error("existingSequence is not an array:", existingSequence);
+        return false;
+      }
+
+      let overlapCount = 0;
+
+      // 새 시퀀스의 각 위치를 기존 시퀀스와 비교
+      newSequence.forEach(([newR, newC]) => {
+        if ([existingSequence].some(([r, c]) => r === newR && c === newC)) {
+          overlapCount++;
+        }
+      });
+
+      // 두 개 이상의 위치가 겹치면 중복으로 간주
+      return overlapCount >= 2;
+    });
   };
 
   const canFormSequence = (r, c, x, y) => {

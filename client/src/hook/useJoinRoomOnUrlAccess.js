@@ -29,9 +29,9 @@ const useUserRoomRedirect = (user, setAlertMessage) => {
         } catch (error) {
           // 방 정보가 없거나 에러 발생 시 joinRoom 시도
 
-            // 다른 에러가 발생했을 경우
-            setAlertMessage("방 정보를 불러오는 중 오류가 발생했습니다.");
-            navigate("/lounge");
+          // 다른 에러가 발생했을 경우
+          setAlertMessage("방 정보를 불러오는 중 오류가 발생했습니다.");
+          navigate("/lounge");
         }
       };
 
@@ -53,7 +53,8 @@ const useUserRoomRedirect = (user, setAlertMessage) => {
           }
         } catch (joinError) {
           const errorMessage =
-            joinError?.response?.data?.message || "An unexpected error occurred";
+            joinError?.response?.data?.message ||
+            "An unexpected error occurred";
           setAlertMessage(errorMessage);
           navigate("/lounge");
         }

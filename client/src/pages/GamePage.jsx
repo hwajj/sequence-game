@@ -234,11 +234,6 @@ function GamePage() {
       return;
     }
 
-    if (board[position[0]][position[1]].protected) {
-      setAlertMessage("이 위치는 시퀀스입니다");
-      return;
-    }
-
     // 클릭된 위치가 이미 점유된 경우 (J카드가 아닌 경우)
     if (board[position[0]][position[1]].occupiedColor && !card.includes("J")) {
       setAlertMessage("이미 채워져있습니다.");
@@ -275,7 +270,8 @@ function GamePage() {
       // console.log(gameFinished);
       // console.log(sequenceIndices);
     } catch (error) {
-      console.error("Failed to place card:", error);
+      console.log(error);
+      setAlertMessage(error.response.data.error);
     }
     setClickedCard(null);
   };

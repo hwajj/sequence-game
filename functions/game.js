@@ -168,23 +168,24 @@ export const placeCard = async (req, res) => {
     }
 
     if (!roomData.board) {
-      return res.status(404).send({ error: "Game not started!" });
+      return res.status(404).send({ error: "게임이 시작하지 않았습니다." });
     }
 
     // 현재 턴이 맞는지 확인
     if (roomData.currentTurn !== userId) {
-      return res.status(400).send({ error: "It's not your turn" });
+      return res.status(400).send({ error: "차례가 아닙니다" });
     }
     // 카드가 플레이어의 카드에 있는지 확인
     const player = roomData.players[userId];
 
     if (!player.cards.includes(card)) {
-      return res.status(400).send({ error: "Card not in player's hand" });
+      return res.status(400).send({ error: "가지고 있지 않은 카드입니다" });
     }
 
     // 보드 상태 업데이트 (전송된 위치를 기준으로)
     const [row, col] = position;
 
+    // return;
     // J 카드에 대한 규칙 적용
     if (card.includes("J")) {
       // console.log(card + " in player's hand J'");
@@ -192,14 +193,17 @@ export const placeCard = async (req, res) => {
         // 상대방의 칩을 제거하는 J 카드 (♠,♥)
         // console.log(card + 'card.includes("♠") || card.includes("♥")');
         const targetPosition = roomData.board[row][col];
-        // console.log(targetPosition);
-        if (
-          targetPosition &&
-          targetPosition.occupiedColor &&
-          !targetPosition.protected &&
-          targetPosition.occupiedColor !== player.team
-        ) {
-          targetPosition.occupiedColor = ""; // 상대방의 칩 제거
+        if (targetPosition.isSequence) {
+          return res.status(400).send({ error: "여기는 이미 시퀀스입니다" });
+        }
+        if (targetPosition && targetPosition.occupiedColor) {
+          if (targetPosition.occupiedColor !== player.team) {
+            targetPosition.occupiedColor = ""; // 상대방의 칩 제거
+          } else {
+            return res
+              .status(400)
+              .send({ error: "옆을 보는 J 카드의 규칙을 확인하세요" });
+          }
         }
       } else if (card.includes("♦") || card.includes("♣")) {
         console.log(card + 'card.include"♦") || card.includes("♣"');
@@ -208,6 +212,10 @@ export const placeCard = async (req, res) => {
         console.log(targetPosition);
         if (targetPosition && !targetPosition.occupiedColor) {
           targetPosition.occupiedColor = player.team;
+        } else if (targetPosition && targetPosition.occupiedColor) {
+          return res
+            .status(400)
+            .send({ error: "앞을 보는 J 카드의 규칙을 확인하세요" });
         }
       }
     } else {
@@ -233,6 +241,13 @@ export const placeCard = async (req, res) => {
       roomData.board,
       player.team,
     );
+    // console.log(sequenceIndices);
+    // sequenceIndices를 사용하여 roomData.board의 isSequence를 업데이트
+    sequenceIndices.forEach((sequence) => {
+      sequence.forEach(([r, c]) => {
+        roomData.board[r][c].isSequence = true;
+      });
+    });
 
     // 시퀀스가 두 개 완성된 경우
     if (sequenceCount >= 2) {
@@ -293,13 +308,13 @@ export const placeCard = async (req, res) => {
     res.status(500).send({ error: "Failed to place card" });
   }
 };
+// canFormSequence 함수 제거
 export const checkWin = (board, playerTeam) => {
   let sequenceIndices = [];
   let sequenceCount = 0;
   const boardSize = 10;
   const sequenceLength = 5; // 시퀀스의 길이
 
-  // 임시 보드를 생성하여 조커 위치 같은색으로
   const tempBoard = board.map((row, rowIndex) =>
     row.map((cell, colIndex) => {
       if (
@@ -315,30 +330,104 @@ export const checkWin = (board, playerTeam) => {
   );
 
   const addSequenceIndices = (indices) => {
-    sequenceIndices.push(...indices);
+    sequenceIndices.push(indices);
   };
 
   const checkAndAddSequence = (sequence) => {
+    // console.log("checkAndAddSequence ,sequence");
+    // console.log(sequence);
+
     if (sequence.length === sequenceLength) {
       if (!isDuplicateSequence(sequence)) {
-        sequenceCount++;
-        addSequenceIndices(sequence);
+        // console.log("!isDuplicateSequence(sequence)");
+        if (isSameLineWithExisting(sequence)) {
+          // console.log("isSameLineWithExisting");
+          const mergedSequence = mergeSequences(sequence);
+
+          if (mergedSequence.length === 10) {
+            // console.log("mergedSequence.length === 10    ");
+            sequenceCount++;
+            addSequenceIndices(sequence);
+            sequence.forEach(([r, c]) => {
+              tempBoard[r][c].isSequence = true; // 시퀀스 위치 업데이트
+            });
+          }
+        } else {
+          sequenceCount++;
+          addSequenceIndices(sequence);
+          sequence.forEach(([r, c]) => {
+            tempBoard[r][c].isSequence = true; // 시퀀스 위치 업데이트
+          });
+          //console.log(sequenceCount,
+          // console.log(sequence)
+        }
+      } else {
+        // console.log("중복시퀀스 ");
       }
+    } else {
+      // console.log("길이가 아직 5개 안됨");
     }
   };
 
   const isDuplicateSequence = (newSequence) => {
-    return sequenceIndices.some(([r, c]) =>
-      newSequence.some(([newR, newC]) => r === newR && c === newC),
-    );
+    return sequenceIndices.some((existingSequence) => {
+      let overlapCount = 0;
+
+      // 새 시퀀스의 각 위치를 기존 시퀀스와 비교하여 겹치는 위치를 계산
+      newSequence.forEach(([newR, newC]) => {
+        if (existingSequence.some(([r, c]) => r === newR && c === newC)) {
+          overlapCount++;
+        }
+      });
+
+      // 겹치는 위치가 두 개 이상일 경우 중복으로 간주
+      return overlapCount >= 2;
+    });
   };
 
-  const canFormSequence = (r, c, x, y) => {
-    const endRow = r + (sequenceLength - 1) * y;
-    const endCol = c + (sequenceLength - 1) * x;
-    return (
-      endRow >= 0 && endRow < boardSize && endCol >= 0 && endCol < boardSize
-    );
+  const isSameLineWithExisting = (sequence) => {
+    // console.log("isSameLineWithExisting");
+    // console.log(sequence);
+
+    return sequenceIndices.some((existingSequence) => {
+      // console.log("isSameLineWithExisting existing sequence");
+      // console.log(existingSequence);
+
+      // 같은 행에 있는지 확인: 행이 모두 동일한 경우
+      const isSameRow = existingSequence.every(([r]) =>
+        sequence.every(([seqR]) => seqR === r),
+      );
+
+      // 같은 열에 있는지 확인: 열이 모두 동일한 경우
+      const isSameCol = existingSequence.every(([, c]) =>
+        sequence.every(([, seqC]) => seqC === c),
+      );
+
+      // 같은 대각선에 있는지 확인
+      const isDiagonal =
+        existingSequence.every(
+          ([r, c], i) => r - c === sequence[0][0] - sequence[0][1],
+        ) ||
+        existingSequence.every(
+          ([r, c], i) => r + c === sequence[0][0] + sequence[0][1],
+        );
+
+      // console.log("isSameRow", isSameRow);
+      // console.log("isSameCol", isSameCol);
+      // console.log("isDiagonal", isDiagonal);
+      return isSameRow || isSameCol || isDiagonal;
+    });
+  };
+
+  const mergeSequences = (sequence) => {
+    const merged = new Set();
+    sequence.forEach(([r, c]) => merged.add(`${r},${c}`));
+
+    sequenceIndices.forEach((existingSequence) => {
+      existingSequence.forEach(([r, c]) => merged.add(`${r},${c}`));
+    });
+
+    return Array.from(merged).map((coord) => coord.split(",").map(Number));
   };
 
   const directions = [
@@ -355,8 +444,6 @@ export const checkWin = (board, playerTeam) => {
       if (!color || color !== playerTeam) continue;
 
       for (const { x, y } of directions) {
-        if (!canFormSequence(row, col, x, y)) continue;
-
         let potentialSequence = [];
         let r = row;
         let c = col;
@@ -376,56 +463,6 @@ export const checkWin = (board, playerTeam) => {
         }
       }
     }
-  }
-
-  // 마지막으로, 10개의 칩이 모두 채워진 경우 시퀀스 2개로 간주
-  const checkFullSequence = (sequence) => {
-    if (sequence.length === 10) {
-      checkAndAddSequence(sequence.slice(0, sequenceLength));
-      checkAndAddSequence(sequence.slice(sequenceLength));
-    }
-  };
-
-  // 가로, 세로, 대각선 전체가 채워졌을 때 시퀀스 2개로 간주
-  for (let row = 0; row < boardSize; row++) {
-    let fullSequence = [];
-    for (let col = 0; col < boardSize; col++) {
-      if (tempBoard[row][col].occupiedColor === playerTeam) {
-        fullSequence.push([row, col]);
-      }
-    }
-    if (fullSequence.length === boardSize) {
-      checkFullSequence(fullSequence);
-    }
-  }
-
-  for (let col = 0; col < boardSize; col++) {
-    let fullSequence = [];
-    for (let row = 0; row < boardSize; row++) {
-      if (tempBoard[row][col].occupiedColor === playerTeam) {
-        fullSequence.push([row, col]);
-      }
-    }
-    if (fullSequence.length === boardSize) {
-      checkFullSequence(fullSequence);
-    }
-  }
-
-  let diagonal1 = [];
-  let diagonal2 = [];
-  for (let i = 0; i < boardSize; i++) {
-    if (tempBoard[i][i].occupiedColor === playerTeam) {
-      diagonal1.push([i, i]);
-    }
-    if (tempBoard[i][boardSize - i - 1].occupiedColor === playerTeam) {
-      diagonal2.push([i, boardSize - i - 1]);
-    }
-  }
-  if (diagonal1.length === boardSize) {
-    checkFullSequence(diagonal1);
-  }
-  if (diagonal2.length === boardSize) {
-    checkFullSequence(diagonal2);
   }
 
   return { sequenceCount, sequenceIndices };

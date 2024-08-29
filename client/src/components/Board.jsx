@@ -38,6 +38,7 @@ const Board = ({
   sequenceIndices,
   gameFinished,
 }) => {
+  // console.log(sequenceIndices);
   const [changedPositions, setChangedPositions] = useState([]);
   const [highlightedPositions, setHighlightedPositions] = useState({});
   const previousBoardRef = useRef(board);
@@ -78,10 +79,13 @@ const Board = ({
   }, [board]);
 
   const isSequence = (row, col) => {
-    if (!sequenceIndices || !gameFinished) return;
-    return sequenceIndices.some(
-      ([sequenceRow, sequenceCol]) =>
-        sequenceRow === row && sequenceCol === col,
+    if (!sequenceIndices || !gameFinished) return false;
+
+    return sequenceIndices.some((sequence) =>
+      sequence.some(
+        ([sequenceRow, sequenceCol]) =>
+          sequenceRow === row && sequenceCol === col,
+      ),
     );
   };
 
@@ -111,7 +115,8 @@ const Board = ({
         return classNames({
           [teamColorClass]:
             board[rowIndex][colIndex].occupiedColor &&
-            board[rowIndex][colIndex].occupiedColor !== myTeamRef.current,
+            board[rowIndex][colIndex].occupiedColor !== myTeamRef.current &&
+            !board[rowIndex][colIndex].isSequence,
         });
       } else if (clickedCard.includes("♦") || clickedCard.includes("♣")) {
         // 다이아 또는 클럽 J카드: 빈 칸에만 놓을 수 있음

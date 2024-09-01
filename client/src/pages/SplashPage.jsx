@@ -1,10 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { userAtom } from "@/atoms/userAtom.js";
-import { useAtom } from "jotai";
-import { getDatabase, ref } from "firebase/database";
-import axios from "axios";
 
 export default function SplashPage() {
   const logoRef = useRef(null);

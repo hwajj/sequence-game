@@ -6,7 +6,7 @@ import { getDatabase, ref, onValue, off } from "firebase/database";
 import CreateRoomModal from "@/components/CreateRoomModal.jsx";
 import AlertMessage from "@/components/AlertMessage.jsx";
 import { useAtom } from "jotai";
-import {alertMessageAtom} from "@/atoms/alertAtoms.js";
+import { alertMessageAtom } from "@/atoms/alertAtoms.js";
 
 const LoungePage = () => {
   const [loading, setLoading] = useState(true); // 로딩 상태
@@ -17,10 +17,8 @@ const LoungePage = () => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const [alertMessage, setAlertMessage] = useAtom(alertMessageAtom);
+  const dbInstanceRef = useRef(getDatabase());
 
-
-  const dbInstanceRef = useRef();
-  dbInstanceRef.current = getDatabase();
   useEffect(() => {
     if (user) {
       const checkUserRoom = async () => {

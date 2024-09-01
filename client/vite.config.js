@@ -13,4 +13,11 @@ export default defineConfig({
   css: {
     postcss: "./postcss.config.js",
   },
+  define: {
+    "process.env": {
+      VITE_GA_MEASUREMENT_ID: JSON.stringify(
+        process.env.VITE_GA_MEASUREMENT_ID,
+      ),
+    },
+  },
 });

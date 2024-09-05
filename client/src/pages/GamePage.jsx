@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAtom, useSetAtom } from "jotai";
 import { userAtom } from "@/atoms/userAtom.js";
 import React, { useEffect, useState } from "react";
-import { getDatabase, ref, onValue } from "firebase/database";
+import { getDatabase, ref, onValue, update } from "firebase/database";
 import Board from "@/components/Board.jsx";
 import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,6 +13,7 @@ import QuitGameModal from "@/components/QuitGameModal.jsx";
 import useJoinRoomOnUrlAccess from "@/hook/useJoinRoomOnUrlAccess.js";
 import { alertMessageAtom } from "@/atoms/alertAtoms.js";
 import { truncateName } from "@/util/util.js";
+
 function GamePage() {
   const { roomId } = useParams();
   const [user] = useAtom(userAtom);
@@ -63,10 +64,23 @@ function GamePage() {
           }
 
           // isHost가 true인 플레이어를 찾아서 host 상태에 저장
-          const hostPlayer = players.find((player) => player.isHost);
-          if (hostPlayer) {
+          let hostPlayer = players.find((player) => player.isHost);
+          if (!hostPlayer) {
+            // 호스트가 없으면 indexNumber가 가장 작은 플레이어를 호스트로 설정
+            hostPlayer = players[0];
+            if (hostPlayer) {
+              update(
+                ref(dbInstance, `rooms/${roomId}/players/${hostPlayer.userId}`),
+                {
+                  isHost: true,
+                },
+              );
+              setHost(hostPlayer.userId);
+            }
+          } else {
             setHost(hostPlayer.userId);
           }
+
           const currentPlayer = roomData.players[user.uid];
           if (currentPlayer && currentPlayer.cards) {
             if (roomData.gameStarted) {

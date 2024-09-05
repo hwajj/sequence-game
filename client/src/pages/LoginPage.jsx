@@ -40,8 +40,8 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex gap-10 m-auto flex-col justify-center items-center">
-      <p className="text-[.8rem] text-center">
+    <div className="flex gap-7 mt-48 flex-col   justify-center items-center">
+      <p className="text-[1rem] mt-10 text-center">
         간편한 구글 로그인으로 게임을 즐기실 수 있습니다.
       </p>
       {!user ? (

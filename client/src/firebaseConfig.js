@@ -1,17 +1,16 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getDatabase } from "firebase/database"; // Realtime Database 초기화
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCvOihw1MsNnkSlzn1uHDM4bIw_K-8GbVE",
-  authDomain: "sequence-game-ad037.firebaseapp.com",
-  projectId: "sequence-game-ad037",
-  storageBucket: "sequence-game-ad037.appspot.com",
-  messagingSenderId: "469533649181",
-  appId: "1:469533649181:web:de42e7b3dca515ad8fd9f4",
-  measurementId: "G-4ZNBJN15HY",
-  databaseURL:
-    "https://sequence-game-ad037-default-rtdb.asia-southeast1.firebasedatabase.app",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
 };
 
 const app = initializeApp(firebaseConfig);
